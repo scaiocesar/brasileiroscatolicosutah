@@ -13,7 +13,7 @@
 		{
 			"binding": "DB",
 			"database_name": "brasileiroscatolicosutah",
-			"database_id": "local-dev-placeholder",
+			"database_id": "85f0ef81-640b-4bd7-8793-603d344c68f8",
 			"migrations_dir": "migrations"
 		}
 	],
