@@ -1,0 +1,60 @@
+---
+import type { FeaturedMass } from '../lib/types';
+import { formatDateTimePt } from '../lib/dates';
+import { mediaUrl } from '../lib/db';
+
+interface Props {
+	featured: FeaturedMass;
+	mapsUrl?: string;
+}
+
+const { featured, mapsUrl } = Astro.props;
+const image = mediaUrl(featured.image_key);
+---
+
+<section class="border-b border-brand-gold/30 bg-gradient-to-b from-brand-blue to-brand-blue-dark text-white" aria-labelledby="destaque-missa">
+	<div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+		<p class="mb-2 inline-flex items-center gap-2 rounded-full bg-brand-gold px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-blue-dark">
+			Em evidência
+		</p>
+		<h2 id="destaque-missa" class="text-2xl font-extrabold sm:text-3xl">{featured.title}</h2>
+		<p class="mt-2 text-blue-100">{formatDateTimePt(featured.event_at)}</p>
+		{featured.location && <p class="mt-1 text-sm text-blue-100">{featured.location}</p>}
+
+		<div class="mt-6 overflow-hidden rounded-2xl bg-black/20 shadow-card">
+			{
+				image && (
+					<img
+						src={image}
+						alt={`Arte da missa: ${featured.title}`}
+						width="1200"
+						height="675"
+						class="h-auto w-full object-contain"
+						loading="eager"
+					/>
+				)
+			}
+		</div>
+
+		<div class="mt-6 flex flex-wrap gap-3">
+			<a
+				href="/missa"
+				class="rounded-full bg-white px-5 py-3 text-sm font-semibold text-brand-blue hover:bg-brand-cream"
+			>
+				Ver horário da missa
+			</a>
+			{
+				mapsUrl && (
+					<a
+						href={mapsUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="rounded-full border border-white/40 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10"
+					>
+						Como chegar
+					</a>
+				)
+			}
+		</div>
+	</div>
+</section>

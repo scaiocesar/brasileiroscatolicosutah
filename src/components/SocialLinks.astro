@@ -1,0 +1,22 @@
+---
+import type { SiteSettings } from '../lib/types';
+
+interface Props {
+	settings: SiteSettings;
+	light?: boolean;
+}
+
+const { settings, light = false } = Astro.props;
+const linkClass = light
+	? 'inline-flex items-center gap-2 rounded-full border border-white/30 px-4 py-2 text-sm font-medium text-white hover:bg-white/10'
+	: 'inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:border-brand-blue hover:text-brand-blue';
+---
+
+<div class="flex flex-wrap gap-2">
+	<a href={settings.facebook_url} target="_blank" rel="noopener noreferrer" class={linkClass}>
+		Facebook
+	</a>
+	<a href={settings.instagram_url} target="_blank" rel="noopener noreferrer" class={linkClass}>
+		Instagram
+	</a>
+</div>

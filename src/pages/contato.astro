@@ -1,0 +1,65 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import SocialLinks from '../components/SocialLinks.astro';
+import { contactLines, getDb, getSettings } from '../lib/db';
+
+const db = getDb(Astro.locals);
+const settings = await getSettings(db);
+const contacts = contactLines(settings.contacts);
+---
+
+<BaseLayout
+	title="Contato"
+	description="Fale com a comunidade Brasileiros Católicos Utah. Endereço, telefone, WhatsApp, Facebook e Instagram."
+	settings={settings}
+>
+	<section class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+		<p class="text-sm font-semibold uppercase tracking-wide text-brand-blue">Fale conosco</p>
+		<h1 class="mt-2 text-3xl font-extrabold text-brand-blue-dark sm:text-4xl">Contato</h1>
+		<p class="mt-4 max-w-2xl text-slate-700">
+			Estamos felizes em receber você na nossa comunidade de brasileiros católicos em Salt Lake City e
+			Utah.
+		</p>
+
+		<div class="mt-8 grid gap-6 md:grid-cols-2">
+			<article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+				<h2 class="text-lg font-bold text-brand-blue">Endereço da missa</h2>
+				<p class="mt-3 text-slate-800">{settings.address}</p>
+				<p class="mt-1 text-sm text-slate-600">Igreja Católica de São José Operário — West Jordan, UT</p>
+
+				<h2 class="mt-6 text-lg font-bold text-brand-blue">Contato</h2>
+				<ul class="mt-3 space-y-2 text-slate-800">
+					{contacts.map((line) => <li>{line}</li>)}
+				</ul>
+			</article>
+
+			<article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+				<h2 class="text-lg font-bold text-brand-blue">Redes sociais</h2>
+				<p class="mt-3 text-sm text-slate-600">
+					Siga a comunidade e receba avisos da missa em português e dos eventos.
+				</p>
+				<div class="mt-4">
+					<SocialLinks settings={settings} />
+				</div>
+				<div class="mt-6 flex flex-col items-start gap-4 sm:flex-row">
+					<img
+						src="/images/qr-whatsapp.png"
+						alt="QR Code WhatsApp"
+						width="120"
+						height="120"
+						class="rounded-xl border border-slate-200 p-2"
+						loading="lazy"
+					/>
+					<a
+						href={settings.whatsapp_url}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700"
+					>
+						Entrar no grupo de WhatsApp
+					</a>
+				</div>
+			</article>
+		</div>
+	</section>
+</BaseLayout>

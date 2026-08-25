@@ -1,0 +1,53 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { requireAuth } from '../../lib/admin';
+import { getSettings, isFeatureEnabled } from '../../lib/db';
+
+const auth = await requireAuth(Astro);
+if (auth.redirect) return auth.redirect;
+const { user, db } = auth;
+if (!db) return Astro.redirect('/admin/login?error=db');
+
+const settings = await getSettings(db);
+const msg = Astro.url.searchParams.get('msg');
+const sobreOn = isFeatureEnabled(settings.page_sobre_enabled);
+---
+
+<AdminLayout title="Sobre" userName={user!.name} role={user!.role}>
+	<h1 class="text-2xl font-bold text-brand-blue-dark">Página Sobre</h1>
+	<p class="mt-1 text-sm text-slate-600">Edite o texto da página e ligue ou desligue a publicação no site.</p>
+
+	{msg === 'saved' && <p class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Salvo com sucesso.</p>}
+
+	<form method="POST" action="/api/about" class="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+		<label class="inline-flex items-center gap-2 text-sm font-medium">
+			<input type="checkbox" name="page_sobre_enabled" value="1" checked={sobreOn} />
+			Exibir página Sobre no site
+		</label>
+
+		<label class="block text-sm font-medium">
+			Título
+			<input
+				name="about_title"
+				required
+				value={settings.about_title}
+				class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+			/>
+		</label>
+
+		<label class="block text-sm font-medium">
+			Conteúdo
+			<textarea
+				name="about_content"
+				rows="12"
+				required
+				class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+			>{settings.about_content}</textarea>
+			<span class="mt-1 block text-xs text-slate-500">Use uma linha em branco para separar parágrafos.</span>
+		</label>
+
+		<button type="submit" class="rounded-full bg-brand-blue px-5 py-2.5 text-sm font-semibold text-white">
+			Salvar
+		</button>
+	</form>
+</AdminLayout>

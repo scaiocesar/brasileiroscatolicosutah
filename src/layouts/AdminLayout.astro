@@ -1,0 +1,74 @@
+---
+import '../styles/global.css';
+
+interface Props {
+	title: string;
+	userName: string;
+	user: 'admin' | 'editor';
+}
+
+const { title, userName, role } = Astro.props;
+const path = Astro.url.pathname;
+
+const links = [
+	{ href: '/admin', label: 'Painel', roles: ['admin', 'editor'] },
+	{ href: '/admin/featured', label: 'Arte da missa', roles: ['admin', 'editor'] },
+	{ href: '/admin/schedule', label: 'Horário', roles: ['admin', 'editor'] },
+	{ href: '/admin/events', label: 'Eventos', roles: ['admin', 'editor'] },
+	{ href: '/admin/about', label: 'Sobre', roles: ['admin', 'editor'] },
+	{ href: '/admin/users', label: 'Usuários', roles: ['admin'] },
+	{ href: '/admin/settings', label: 'Configurações', roles: ['admin'] },
+].filter((l) => l.roles.includes(role));
+---
+
+<!doctype html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex, nofollow" />
+		<title>{title} | Admin</title>
+		<link rel="icon" type="image/png" href="/images/logo.png" />
+	</head>
+	<body class="min-h-screen bg-slate-100 text-slate-900">
+		<div class="mx-auto flex min-h-screen max-w-6xl flex-col md:flex-row">
+			<aside class="border-b border-slate-200 bg-brand-blue-dark text-white md:w-64 md:border-b-0 md:border-r">
+				<div class="flex items-center gap-3 px-4 py-5">
+					<img src="/images/logo.png" alt="" class="h-10 w-10 rounded-full" />
+					<div>
+						<p class="text-sm font-bold">Admin</p>
+						<p class="text-xs text-blue-200">{userName}</p>
+					</div>
+				</div>
+				<nav class="flex gap-1 overflow-x-auto px-2 pb-3 md:flex-col md:overflow-visible md:px-3">
+					{
+						links.map((link) => (
+							<a
+								href={link.href}
+								class:list={[
+									'whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium',
+									path === link.href || (link.href !== '/admin' && path.startsWith(link.href))
+										? 'bg-white/20'
+										: 'hover:bg-white/10',
+								]}
+							>
+								{link.label}
+							</a>
+						))
+					}
+					<a href="/" class="whitespace-nowrap rounded-lg px-3 py-2 text-sm text-blue-100 hover:bg-white/10">
+						Ver site
+					</a>
+					<form method="POST" action="/api/auth/logout" class="md:mt-2">
+						<button type="submit" class="w-full rounded-lg px-3 py-2 text-left text-sm text-red-200 hover:bg-white/10">
+							Sair
+						</button>
+					</form>
+				</nav>
+			</aside>
+			<main class="flex-1 p-4 sm:p-6">
+				<slot />
+			</main>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,87 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import EventCalendar from '../components/EventCalendar.astro';
+import { getDb, getSettings, isFeatureEnabled, listEventsInMonth, listUpcomingEvents } from '../lib/db';
+import { formatDateTimePt } from '../lib/dates';
+
+const db = getDb(Astro.locals);
+const settings = await getSettings(db);
+
+if (!isFeatureEnabled(settings.page_eventos_enabled)) {
+	return Astro.redirect('/404');
+}
+
+const showCalendar = isFeatureEnabled(settings.calendar_enabled);
+
+const now = new Date();
+const yearParam = Number(Astro.url.searchParams.get('y') ?? now.getFullYear());
+const monthParam = Number(Astro.url.searchParams.get('m') ?? now.getMonth() + 1);
+const year = Number.isFinite(yearParam) ? yearParam : now.getFullYear();
+const monthIndex = Math.min(11, Math.max(0, (Number.isFinite(monthParam) ? monthParam : now.getMonth() + 1) - 1));
+
+let prevY = year;
+let prevM = monthIndex - 1;
+if (prevM < 0) {
+	prevM = 11;
+	prevY -= 1;
+}
+let nextY = year;
+let nextM = monthIndex + 1;
+if (nextM > 11) {
+	nextM = 0;
+	nextY += 1;
+}
+
+const monthEvents = showCalendar ? await listEventsInMonth(db, year, monthIndex) : [];
+const upcoming = await listUpcomingEvents(db, 12);
+---
+
+<BaseLayout
+	title="Calendário de eventos"
+	description="Calendário de eventos da comunidade Brasileiros Católicos Utah: missas, encontros e atividades em Salt Lake City."
+	settings={settings}
+>
+	<section class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
+		<p class="text-sm font-semibold uppercase tracking-wide text-brand-blue">Comunidade</p>
+		<h1 class="mt-2 text-3xl font-extrabold text-brand-blue-dark sm:text-4xl">
+			{showCalendar ? 'Calendário de eventos' : 'Eventos'}
+		</h1>
+		<p class="mt-4 max-w-3xl text-slate-700">
+			Acompanhe missas especiais, encontros e atividades da comunidade católica brasileira no Utah.
+		</p>
+
+		{
+			showCalendar && (
+				<div class="mt-8">
+					<EventCalendar
+						year={year}
+						monthIndex={monthIndex}
+						events={monthEvents}
+						prevHref={`/eventos?y=${prevY}&m=${prevM + 1}`}
+						nextHref={`/eventos?y=${nextY}&m=${nextM + 1}`}
+					/>
+				</div>
+			)
+		}
+
+		<h2 class="mt-10 text-xl font-bold text-brand-blue">Próximos eventos</h2>
+		{
+			upcoming.length === 0 ? (
+				<p class="mt-4 rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-slate-600">
+					Nenhum evento futuro cadastrado no momento. Volte em breve ou acompanhe pelo WhatsApp.
+				</p>
+			) : (
+				<ul class="mt-4 space-y-3">
+					{upcoming.map((event) => (
+						<li class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+							<p class="text-xs font-semibold uppercase text-brand-blue">{formatDateTimePt(event.starts_at)}</p>
+							<h3 class="mt-1 text-lg font-bold text-slate-900">{event.title}</h3>
+							{event.location && <p class="mt-1 text-sm text-slate-600">{event.location}</p>}
+							{event.description && <p class="mt-2 text-sm text-slate-700">{event.description}</p>}
+						</li>
+					))}
+				</ul>
+			)
+		}
+	</section>
+</BaseLayout>

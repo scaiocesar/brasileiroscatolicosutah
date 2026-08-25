@@ -1,0 +1,40 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getDb, getSettings, isFeatureEnabled } from '../lib/db';
+
+const db = getDb(Astro.locals);
+const settings = await getSettings(db);
+
+if (!isFeatureEnabled(settings.page_sobre_enabled)) {
+	return Astro.redirect('/404');
+}
+
+const paragraphs = settings.about_content
+	.split(/\n\s*\n/)
+	.map((p) => p.trim())
+	.filter(Boolean);
+---
+
+<BaseLayout
+	title={settings.about_title}
+	description="Conheça a comunidade Brasileiros Católicos Utah: missa em português, fé e convivência em Salt Lake City."
+	settings={settings}
+>
+	<section class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+		<p class="text-sm font-semibold uppercase tracking-wide text-brand-blue">Comunidade</p>
+		<h1 class="mt-2 text-3xl font-extrabold text-brand-blue-dark sm:text-4xl">{settings.about_title}</h1>
+		<div class="mt-8 space-y-4 text-base leading-relaxed text-slate-700 sm:text-lg">
+			{
+				paragraphs.map((p) => (
+					<p class="whitespace-pre-line">{p}</p>
+				))
+			}
+		</div>
+		<a
+			href="/missa"
+			class="mt-10 inline-flex rounded-full bg-brand-blue px-5 py-3 text-sm font-semibold text-white hover:bg-brand-blue-dark"
+		>
+			Ver horário da missa
+		</a>
+	</section>
+</BaseLayout>

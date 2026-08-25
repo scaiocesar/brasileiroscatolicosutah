@@ -1,0 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+html {
+	scroll-behavior: smooth;
+}
+
+body {
+	@apply bg-brand-cream text-brand-ink antialiased;
+}
+
+:focus-visible {
+	@apply outline-2 outline-offset-2 outline-brand-blue;
+}

@@ -1,0 +1,30 @@
+{
+	"name": "brasileiroscatolicosutah",
+	"type": "module",
+	"version": "1.0.0",
+	"private": true,
+	"engines": {
+		"node": ">=22.12.0"
+	},
+	"scripts": {
+		"dev": "astro dev",
+		"build": "astro build",
+		"preview": "astro preview",
+		"astro": "astro",
+		"db:migrate:local": "wrangler d1 migrations apply brasileiroscatolicosutah --local",
+		"db:migrate:remote": "wrangler d1 migrations apply brasileiroscatolicosutah --remote",
+		"db:seed": "node scripts/generate-seed.mjs && wrangler d1 execute brasileiroscatolicosutah --local --file=scripts/seed-admin.sql",
+		"db:seed:remote": "node scripts/generate-seed.mjs && wrangler d1 execute brasileiroscatolicosutah --remote --file=scripts/seed-admin.sql",
+		"deploy": "astro build && wrangler deploy"
+	},
+	"dependencies": {
+		"@astrojs/cloudflare": "^12.6.12",
+		"astro": "^5.17.1"
+	},
+	"devDependencies": {
+		"@astrojs/tailwind": "^6.0.2",
+		"@types/node": "^24.3.0",
+		"tailwindcss": "^3.4.17",
+		"wrangler": "^4.33.1"
+	}
+}

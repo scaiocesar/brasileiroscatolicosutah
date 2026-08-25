@@ -1,0 +1,91 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { requireAuth } from '../../lib/admin';
+import { listFeaturedMasses, mediaUrl } from '../../lib/db';
+import { formatDateTimePt, isActiveFeatured, toDatetimeLocalValue } from '../../lib/dates';
+
+const auth = await requireAuth(Astro);
+if (auth.redirect) return auth.redirect;
+const { user, db } = auth;
+if (!db) return Astro.redirect('/admin/login?error=db');
+
+const items = await listFeaturedMasses(db);
+const editId = Astro.url.searchParams.get('edit');
+const editing = editId ? items.find((i) => String(i.id) === editId) : null;
+const msg = Astro.url.searchParams.get('msg');
+---
+
+<AdminLayout title="Arte da missa" userName={user!.name} role={user!.role}>
+	<h1 class="text-2xl font-bold text-brand-blue-dark">Arte da missa</h1>
+	<p class="mt-1 text-sm text-slate-600">
+		Publique a arte da missa com a data do evento. Ela fica em evidência no site até essa data.
+	</p>
+
+	{msg === 'saved' && <p class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Salvo com sucesso.</p>}
+	{msg === 'deleted' && <p class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Removido.</p>}
+
+	<form method="POST" action="/api/featured" enctype="multipart/form-data" class="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+		<input type="hidden" name="id" value={editing?.id ?? ''} />
+		<label class="block text-sm font-medium">
+			Título
+			<input name="title" required value={editing?.title ?? ''} class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+		</label>
+		<label class="block text-sm font-medium">
+			Data e hora da missa (até quando fica em evidência)
+			<input
+				type="datetime-local"
+				name="event_at"
+				required
+				value={editing ? toDatetimeLocalValue(editing.event_at) : ''}
+				class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+			/>
+		</label>
+		<label class="block text-sm font-medium">
+			Local (opcional)
+			<input name="location" value={editing?.location ?? ''} class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+		</label>
+		<label class="block text-sm font-medium">
+			Arte (imagem)
+			<input type="file" name="image" accept="image/*" required={!editing} class="mt-1 w-full text-sm" />
+			{editing && <span class="mt-1 block text-xs text-slate-500">Deixe em branco para manter a imagem atual.</span>}
+		</label>
+		<label class="inline-flex items-center gap-2 text-sm">
+			<input type="checkbox" name="published" value="1" checked={editing ? editing.published === 1 : true} />
+			Publicado
+		</label>
+		<div class="flex flex-wrap gap-2">
+			<button type="submit" class="rounded-full bg-brand-blue px-5 py-2.5 text-sm font-semibold text-white">
+				{editing ? 'Atualizar' : 'Publicar'}
+			</button>
+			{editing && (
+				<a href="/admin/featured" class="rounded-full border border-slate-300 px-5 py-2.5 text-sm font-semibold">Cancelar</a>
+			)}
+		</div>
+	</form>
+
+	<ul class="mt-8 space-y-3">
+		{
+			items.map((item) => (
+				<li class="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center">
+					{mediaUrl(item.image_key) && (
+						<img src={mediaUrl(item.image_key)!} alt="" class="h-20 w-28 rounded-lg object-cover" />
+					)}
+					<div class="flex-1">
+						<p class="font-semibold">{item.title}</p>
+						<p class="text-sm text-slate-600">{formatDateTimePt(item.event_at)}</p>
+						<p class="text-xs text-slate-500">
+							{isActiveFeatured(item.event_at) && item.published ? 'Em evidência' : 'Expirada / ocultada'}
+						</p>
+					</div>
+					<div class="flex gap-2">
+						<a href={`/admin/featured?edit=${item.id}`} class="rounded-lg border px-3 py-2 text-sm">Editar</a>
+						<form method="POST" action="/api/featured/delete">
+							<input type="hidden" name="id" value={item.id} />
+							<button type="submit" class="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700" onclick="return confirm('Excluir esta arte?')">Excluir</button>
+						</form>
+					</div>
+				</li>
+			))
+		}
+	</ul>
+</AdminLayout>

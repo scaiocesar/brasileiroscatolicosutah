@@ -1,0 +1,118 @@
+---
+import type { SiteSettings } from '../lib/types';
+import { isFeatureEnabled } from '../lib/db';
+
+interface Props {
+	settings: SiteSettings;
+}
+
+const { settings } = Astro.props;
+const path = Astro.url.pathname;
+
+const links = [
+	{ href: '/', label: 'Início', show: true },
+	{ href: '/missa', label: 'Missa', show: true },
+	{ href: '/sobre', label: 'Sobre', show: isFeatureEnabled(settings.page_sobre_enabled) },
+	{ href: '/eventos', label: 'Eventos', show: isFeatureEnabled(settings.page_eventos_enabled) },
+	{ href: '/contato', label: 'Contato', show: true },
+].filter((l) => l.show);
+
+function isActive(href: string) {
+	if (href === '/') return path === '/';
+	return path.startsWith(href);
+}
+---
+
+<header class="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur">
+	<div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+		<a href="/" class="flex items-center gap-3 min-w-0">
+			<img
+				src="/images/logo.png"
+				alt="Logo Católicos em Utah"
+				width="56"
+				height="56"
+				class="h-12 w-12 rounded-full object-cover shadow-sm sm:h-14 sm:w-14"
+			/>
+			<div class="min-w-0">
+				<p class="truncate text-sm font-bold text-brand-blue sm:text-base">{settings.site_name}</p>
+				<p class="hidden truncate text-xs text-slate-500 sm:block">{settings.tagline}</p>
+			</div>
+		</a>
+
+		<nav class="hidden items-center gap-1 md:flex" aria-label="Principal">
+			{
+				links.map((link) => (
+					<a
+						href={link.href}
+						class:list={[
+							'rounded-full px-4 py-2 text-sm font-medium transition',
+							isActive(link.href)
+								? 'bg-brand-blue text-white'
+								: 'text-slate-700 hover:bg-brand-cream',
+						]}
+						aria-current={isActive(link.href) ? 'page' : undefined}
+					>
+						{link.label}
+					</a>
+				))
+			}
+			<a
+				href={settings.whatsapp_url}
+				target="_blank"
+				rel="noopener noreferrer"
+				class="ml-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+			>
+				WhatsApp
+			</a>
+		</nav>
+
+		<button
+			type="button"
+			id="menu-btn"
+			class="inline-flex items-center justify-center rounded-lg border border-slate-200 p-2 text-brand-blue md:hidden"
+			aria-expanded="false"
+			aria-controls="mobile-menu"
+			aria-label="Abrir menu"
+		>
+			<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+			</svg>
+		</button>
+	</div>
+
+	<div id="mobile-menu" class="hidden border-t border-slate-100 bg-white md:hidden">
+		<nav class="flex flex-col gap-1 px-4 py-3" aria-label="Mobile">
+			{
+				links.map((link) => (
+					<a
+						href={link.href}
+						class:list={[
+							'rounded-lg px-3 py-3 text-base font-medium',
+							isActive(link.href) ? 'bg-brand-blue text-white' : 'text-slate-800',
+						]}
+					>
+						{link.label}
+					</a>
+				))
+			}
+			<a
+				href={settings.whatsapp_url}
+				target="_blank"
+				rel="noopener noreferrer"
+				class="mt-1 rounded-lg bg-emerald-600 px-3 py-3 text-center text-base font-semibold text-white"
+			>
+				Entrar no WhatsApp
+			</a>
+		</nav>
+	</div>
+</header>
+
+<script>
+	const btn = document.getElementById('menu-btn');
+	const menu = document.getElementById('mobile-menu');
+	btn?.addEventListener('click', () => {
+		const open = menu?.classList.toggle('hidden') === false;
+		btn.setAttribute('aria-expanded', String(open));
+		btn.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
+	});
+</script>

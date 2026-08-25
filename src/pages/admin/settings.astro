@@ -1,0 +1,56 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { requireAuth } from '../../lib/admin';
+import { getSettings } from '../../lib/db';
+
+const auth = await requireAuth(Astro, ['admin']);
+if (auth.redirect) return auth.redirect;
+const { user, db } = auth;
+if (!db) return Astro.redirect('/admin/login?error=db');
+
+const settings = await getSettings(db);
+const msg = Astro.url.searchParams.get('msg');
+---
+
+<AdminLayout title="Configurações" userName={user!.name} role={user!.role}>
+	<h1 class="text-2xl font-bold text-brand-blue-dark">Configurações</h1>
+	<p class="mt-1 text-sm text-slate-600">Links, contatos e textos gerais do site.</p>
+
+	{msg === 'saved' && <p class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Configurações salvas.</p>}
+
+	<form method="POST" action="/api/settings" class="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+		{
+			(
+				[
+					['site_name', 'Nome do site'],
+					['tagline', 'Slogan'],
+					['address', 'Endereço'],
+					['facebook_url', 'Facebook'],
+					['instagram_url', 'Instagram'],
+					['whatsapp_url', 'WhatsApp'],
+				] as const
+			).map(([key, label]) => (
+				<label class="block text-sm font-medium">
+					{label}
+					<input name={key} required value={settings[key]} class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+				</label>
+			))
+		}
+		<label class="block text-sm font-medium">
+			Contato
+			<textarea
+				name="contacts"
+				rows="4"
+				required
+				class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+				placeholder={'Uma linha por contato\nEx.: (801) 613-8046\nPriscila +1 (702) 292-7405'}
+			>{settings.contacts}</textarea>
+			<span class="mt-1 block text-xs text-slate-500">Uma linha por telefone ou pessoa.</span>
+		</label>
+		<label class="block text-sm font-medium">
+			Texto de boas-vindas
+			<textarea name="welcome_text" rows="4" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">{settings.welcome_text}</textarea>
+		</label>
+		<button type="submit" class="rounded-full bg-brand-blue px-5 py-2.5 text-sm font-semibold text-white">Salvar</button>
+	</form>
+</AdminLayout>

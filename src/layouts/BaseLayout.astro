@@ -1,0 +1,71 @@
+---
+import '../styles/global.css';
+import { SITE_URL, SEO_KEYWORDS } from '../lib/constants';
+import type { SiteSettings } from '../lib/types';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+	title: string;
+	description: string;
+	settings: SiteSettings;
+	ogImage?: string;
+	canonicalPath?: string;
+	jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+}
+
+const {
+	title,
+	description,
+	settings,
+	ogImage = '/images/hero.jpg',
+	canonicalPath = Astro.url.pathname,
+	jsonLd,
+} = Astro.props;
+
+const fullTitle = title.includes(settings.site_name) ? title : `${title} | ${settings.site_name}`;
+const canonical = new URL(canonicalPath, SITE_URL).toString();
+const og = ogImage.startsWith('http') ? ogImage : new URL(ogImage, SITE_URL).toString();
+---
+
+<!doctype html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>{fullTitle}</title>
+		<meta name="description" content={description} />
+		<meta name="keywords" content={SEO_KEYWORDS} />
+		<meta name="author" content={settings.site_name} />
+		<meta name="robots" content="index, follow" />
+		<link rel="canonical" href={canonical} />
+		<link rel="icon" type="image/png" href="/images/logo.png" />
+		<meta property="og:type" content="website" />
+		<meta property="og:locale" content="pt_BR" />
+		<meta property="og:site_name" content={settings.site_name} />
+		<meta property="og:title" content={fullTitle} />
+		<meta property="og:description" content={description} />
+		<meta property="og:url" content={canonical} />
+		<meta property="og:image" content={og} />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={fullTitle} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={og} />
+		{jsonLd && (
+			<script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+		)}
+	</head>
+	<body class="min-h-screen flex flex-col">
+		<a
+			href="#conteudo"
+			class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2"
+		>
+			Ir para o conteúdo
+		</a>
+		<Header settings={settings} />
+		<main id="conteudo" class="flex-1">
+			<slot />
+		</main>
+		<Footer settings={settings} />
+	</body>
+</html>

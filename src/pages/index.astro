@@ -1,0 +1,235 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import FeaturedMassBanner from '../components/FeaturedMass.astro';
+import SocialLinks from '../components/SocialLinks.astro';
+import { SITE_URL } from '../lib/constants';
+import { contactLines, getActiveFeaturedMass, getDb, getMassSchedule, getSettings, isFeatureEnabled, listUpcomingEvents } from '../lib/db';
+import { formatDateTimePt, getNextMonthlyMass } from '../lib/dates';
+
+const db = getDb(Astro.locals);
+const settings = await getSettings(db);
+const schedule = await getMassSchedule(db);
+const featured = await getActiveFeaturedMass(db);
+const showEvents = isFeatureEnabled(settings.page_eventos_enabled);
+const upcoming = showEvents ? await listUpcomingEvents(db, 3) : [];
+const nextMass = getNextMonthlyMass();
+const primaryPhone = contactLines(settings.contacts)[0] ?? '';
+const showSobre = isFeatureEnabled(settings.page_sobre_enabled);
+
+const jsonLd = [
+	{
+		'@context': 'https://schema.org',
+		'@type': 'CatholicChurch',
+		name: settings.site_name,
+		url: SITE_URL,
+		description: settings.welcome_text,
+		address: {
+			'@type': 'PostalAddress',
+			streetAddress: '7405 S Redwood Rd',
+			addressLocality: 'West Jordan',
+			addressRegion: 'UT',
+			postalCode: '84084',
+			addressCountry: 'US',
+		},
+		telephone: primaryPhone,
+		sameAs: [settings.facebook_url, settings.instagram_url],
+	},
+	{
+		'@context': 'https://schema.org',
+		'@type': 'Event',
+		name: 'Missa em português — Brasileiros Católicos Utah',
+		startDate: nextMass.toISOString(),
+		eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+		eventStatus: 'https://schema.org/EventScheduled',
+		location: {
+			'@type': 'Place',
+			name: schedule.church_name,
+			address: schedule.address,
+		},
+		organizer: {
+			'@type': 'Organization',
+			name: settings.site_name,
+			url: SITE_URL,
+		},
+		inLanguage: 'pt-BR',
+		description:
+			'Missa em português em Utah, celebrada para a comunidade de brasileiros católicos em Salt Lake City e região.',
+	},
+];
+---
+
+<BaseLayout
+	title="Brasileiros Católicos Utah | Missa em português em Salt Lake City"
+	description="Comunidade de brasileiros católicos no Utah. Missa em português, eventos e fé em Salt Lake City e West Jordan."
+	settings={settings}
+	ogImage="/images/hero.jpg"
+	jsonLd={jsonLd}
+>
+	<section class="relative overflow-hidden">
+		<img
+			src="/images/hero.jpg"
+			alt="Interior da igreja durante a missa"
+			width="1920"
+			height="1080"
+			class="absolute inset-0 h-full w-full object-cover"
+			fetchpriority="high"
+		/>
+		<div class="absolute inset-0 bg-gradient-to-r from-brand-blue-dark/90 via-brand-blue/75 to-brand-blue/40"></div>
+		<div class="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
+			<p class="mb-3 inline-block rounded-full bg-brand-gold px-3 py-1 text-xs font-bold uppercase tracking-wide text-brand-blue-dark">
+				Comunidade católica brasileira
+			</p>
+			<h1 class="max-w-2xl text-3xl font-extrabold leading-tight text-white sm:text-5xl">
+				Missa em português no Utah
+			</h1>
+			<p class="mt-4 max-w-xl text-base text-blue-50 sm:text-lg">
+				{settings.welcome_text}
+			</p>
+			<div class="mt-8 flex flex-wrap gap-3">
+				<a
+					href="/missa"
+					class="rounded-full bg-brand-gold px-6 py-3 text-sm font-bold text-brand-blue-dark hover:bg-yellow-300"
+				>
+					Horário da missa
+				</a>
+				<a
+					href={settings.whatsapp_url}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="rounded-full bg-white px-6 py-3 text-sm font-bold text-brand-blue hover:bg-brand-cream"
+				>
+					Grupo de WhatsApp
+				</a>
+			</div>
+		</div>
+	</section>
+
+	{featured && <FeaturedMassBanner featured={featured} mapsUrl={schedule.maps_url} />}
+
+	<section class="mx-auto grid max-w-6xl gap-6 px-4 py-12 sm:px-6 md:grid-cols-2">
+		<article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+			<h2 class="text-xl font-bold text-brand-blue">Próxima missa em português</h2>
+			<p class="mt-3 text-slate-700">
+				<strong>{formatDateTimePt(nextMass)}</strong>
+			</p>
+			<p class="mt-2 text-sm text-slate-600">{schedule.recurrence} · {schedule.time_label}</p>
+			<p class="mt-2 text-sm text-slate-600">{schedule.church_name}</p>
+			<p class="mt-1 text-sm text-slate-600">{schedule.address}</p>
+			<p class="mt-2 text-sm text-slate-600">Celebrante: {schedule.priest}</p>
+			<a href="/missa" class="mt-5 inline-flex text-sm font-semibold text-brand-blue hover:underline">
+				Ver detalhes da missa →
+			</a>
+		</article>
+
+		<article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+			<h2 class="text-xl font-bold text-brand-blue">Participe da comunidade</h2>
+			<p class="mt-3 text-sm text-slate-600">
+				Entre no nosso grupo exclusivo de WhatsApp para receber avisos da missa em português, eventos e
+				novidades da comunidade católica em Salt Lake City.
+			</p>
+			<div class="mt-4 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+				<img
+					src="/images/qr-whatsapp.png"
+					alt="QR Code do grupo de WhatsApp"
+					width="140"
+					height="140"
+					class="rounded-xl border border-slate-200 bg-white p-2"
+					loading="lazy"
+				/>
+				<div>
+					<a
+						href={settings.whatsapp_url}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="inline-flex rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700"
+					>
+						Abrir WhatsApp
+					</a>
+					<div class="mt-4">
+						<SocialLinks settings={settings} />
+					</div>
+				</div>
+			</div>
+		</article>
+	</section>
+
+	{
+		showEvents && (
+			<section class="bg-white py-12">
+				<div class="mx-auto max-w-6xl px-4 sm:px-6">
+					<div class="mb-6 flex items-end justify-between gap-4">
+						<div>
+							<h2 class="text-2xl font-bold text-brand-blue">Próximos eventos</h2>
+							<p class="mt-1 text-sm text-slate-600">Calendário da comunidade católica no Utah</p>
+						</div>
+						<a href="/eventos" class="text-sm font-semibold text-brand-blue hover:underline">
+							{isFeatureEnabled(settings.calendar_enabled) ? 'Ver calendário' : 'Ver eventos'}
+						</a>
+					</div>
+
+					{
+						upcoming.length === 0 ? (
+							<div class="rounded-2xl border border-dashed border-slate-300 bg-brand-cream p-8 text-center text-slate-600">
+								Em breve publicaremos novos eventos. Acompanhe também pelo WhatsApp e Instagram.
+							</div>
+						) : (
+							<ul class="grid gap-4 md:grid-cols-3">
+								{upcoming.map((event) => (
+									<li class="rounded-2xl border border-slate-200 bg-brand-cream/50 p-5 shadow-sm">
+										<p class="text-xs font-semibold uppercase tracking-wide text-brand-blue">
+											{formatDateTimePt(event.starts_at)}
+										</p>
+										<h3 class="mt-2 font-bold text-slate-900">{event.title}</h3>
+										{event.location && <p class="mt-1 text-sm text-slate-600">{event.location}</p>}
+									</li>
+								))}
+							</ul>
+						)
+					}
+				</div>
+			</section>
+		)
+	}
+
+	<section class="mx-auto grid max-w-6xl items-center gap-8 px-4 py-12 sm:px-6 md:grid-cols-2">
+		<div>
+			<img
+				src="/images/community.jpg"
+				alt="Membros da comunidade Brasileiros Católicos Utah"
+				width="800"
+				height="1200"
+				class="mx-auto max-h-[420px] w-auto rounded-2xl object-cover shadow-card"
+				loading="lazy"
+			/>
+		</div>
+		<div>
+			<h2 class="text-2xl font-bold text-brand-blue">Fé, cultura e amizade</h2>
+			<p class="mt-4 text-slate-700">
+				Somos brasileiros católicos em Utah reunidos em torno da Eucaristia. Nossa missa em português
+				acontece todo último domingo do mês na Igreja São José Operário, em West Jordan — perto de Salt
+				Lake City.
+			</p>
+			<blockquote class="mt-6 border-l-4 border-brand-gold pl-4 text-slate-600 italic">
+				“A messe é grande, mas os trabalhadores são poucos.” — Mt 9, 35-38
+			</blockquote>
+			<div class="mt-6 flex flex-wrap gap-3">
+				{
+					showSobre && (
+						<a
+							href="/sobre"
+							class="inline-flex rounded-full border border-brand-blue px-5 py-3 text-sm font-semibold text-brand-blue hover:bg-brand-cream"
+						>
+							Sobre a comunidade
+						</a>
+					)
+				}
+				<a
+					href="/contato"
+					class="inline-flex rounded-full bg-brand-blue px-5 py-3 text-sm font-semibold text-white hover:bg-brand-blue-dark"
+				>
+					Fale conosco
+				</a>
+			</div>
+		</div>
+	</section>
+</BaseLayout>
