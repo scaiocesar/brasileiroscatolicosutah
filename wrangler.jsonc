@@ -1,6 +1,7 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "brasileiroscatolicosutah",
+	// Must match the Cloudflare Workers Builds project name / GitHub repo slug.
+	"name": "brasileiroscatilicosutah",
 	"compatibility_date": "2026-08-25",
 	"compatibility_flags": ["nodejs_compat"],
 	"main": "./dist/_worker.js/index.js",

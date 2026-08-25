@@ -8,14 +8,14 @@
 	},
 	"scripts": {
 		"dev": "astro dev",
-		"build": "astro build",
+		"build": "astro build && printf '%s\\n' '_worker.js' '_routes.json' > dist/.assetsignore",
 		"preview": "astro preview",
 		"astro": "astro",
 		"db:migrate:local": "wrangler d1 migrations apply brasileiroscatolicosutah --local",
 		"db:migrate:remote": "wrangler d1 migrations apply brasileiroscatolicosutah --remote",
 		"db:seed": "node scripts/generate-seed.mjs && wrangler d1 execute brasileiroscatolicosutah --local --file=scripts/seed-admin.sql",
 		"db:seed:remote": "node scripts/generate-seed.mjs && wrangler d1 execute brasileiroscatolicosutah --remote --file=scripts/seed-admin.sql",
-		"deploy": "astro build && wrangler deploy"
+		"deploy": "npm run build && wrangler deploy"
 	},
 	"dependencies": {
 		"@astrojs/cloudflare": "^12.6.12",
