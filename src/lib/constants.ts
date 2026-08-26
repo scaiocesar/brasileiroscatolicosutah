@@ -2,7 +2,7 @@ export const SITE_URL = 'https://brasileiroscatolicosutah.org';
 
 export const DEFAULT_SETTINGS = {
 	site_name: 'Brasileiros Católicos Utah',
-	tagline: 'Fé, comunidade e tradição no Utah',
+	tagline: 'Fé, comunidade e tradição em utah',
 	contacts: '(801) 613-8046\nPriscila +1 (702) 292-7405\nCaio +1 (702) 292-6859',
 	address: '7405 S Redwood Rd, West Jordan, UT 84084',
 	facebook_url: 'https://www.facebook.com/brasileiroscatolicosemsaltlake',
@@ -25,7 +25,7 @@ export const DEFAULT_SCHEDULE = {
 	church_name: 'Igreja Católica de São José Operário',
 	address: '7405 S Redwood Rd, West Jordan, UT 84084',
 	priest: 'Padre Francisco Pires',
-	notes: 'Missa em português para a comunidade brasileira católica em Utah.',
+	notes: 'Missa em português para a comunidade brasileira católica em utah.',
 	maps_url: 'https://maps.google.com/?q=7405+S+Redwood+Rd,+West+Jordan,+UT+84084',
 	updated_at: new Date().toISOString(),
 } as const;

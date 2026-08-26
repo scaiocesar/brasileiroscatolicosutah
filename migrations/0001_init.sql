@@ -72,13 +72,13 @@ VALUES (
 	'Igreja Católica de São José Operário',
 	'7405 S Redwood Rd, West Jordan, UT 84084',
 	'Padre Francisco Pires',
-	'Missa em português para a comunidade brasileira católica em Utah.',
+	'Missa em português para a comunidade brasileira católica em utah.',
 	'https://maps.google.com/?q=7405+S+Redwood+Rd,+West+Jordan,+UT+84084'
 );
 
 INSERT OR IGNORE INTO settings (key, value) VALUES
 	('site_name', 'Brasileiros Católicos Utah'),
-	('tagline', 'Fé, comunidade e tradição no Utah'),
+	('tagline', 'Fé, comunidade e tradição em utah'),
 	('contacts', '(801) 613-8046' || CHAR(10) || 'Priscila +1 (702) 292-7405' || CHAR(10) || 'Caio +1 (702) 292-6859'),
 	('address', '7405 S Redwood Rd, West Jordan, UT 84084'),
 	('facebook_url', 'https://www.facebook.com/brasileiroscatolicosemsaltlake'),
