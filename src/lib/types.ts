@@ -10,15 +10,16 @@ export type User = {
 	updated_at: string;
 };
 
-export type MassSchedule = {
+export type Mass = {
 	id: number;
 	recurrence: string;
 	time_label: string;
-	church_name: string;
-	address: string;
-	priest: string;
+	priest: string | null;
 	notes: string | null;
-	maps_url: string;
+	location: string;
+	sort_order: number;
+	published: number;
+	created_at: string;
 	updated_at: string;
 };
 

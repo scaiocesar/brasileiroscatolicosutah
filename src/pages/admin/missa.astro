@@ -1,0 +1,131 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { requireAuth } from '../../lib/admin';
+import { listMasses } from '../../lib/db';
+
+const auth = await requireAuth(Astro);
+if (auth.redirect) return auth.redirect;
+const { user, db } = auth;
+if (!db) return Astro.redirect('/admin/login?error=db');
+
+const items = await listMasses(db, { publishedOnly: false });
+const editId = Astro.url.searchParams.get('edit');
+const editing = editId ? items.find((i) => String(i.id) === editId) : null;
+const msg = Astro.url.searchParams.get('msg');
+---
+
+<AdminLayout title="Missa" userName={user!.name} role={user!.role}>
+	<h1 class="text-2xl font-bold text-brand-blue-dark">Missa</h1>
+	<p class="mt-1 text-sm text-slate-600">
+		Cadastre uma ou mais missas em português, em locais diferentes. Elas aparecem na página pública /missa.
+	</p>
+
+	{msg === 'saved' && <p class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Missa salva.</p>}
+	{msg === 'deleted' && <p class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Missa removida.</p>}
+	{msg === 'error' && <p class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">Não foi possível salvar. Verifique os campos.</p>}
+
+	<form method="POST" action="/api/missa" class="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+		<input type="hidden" name="id" value={editing?.id ?? ''} />
+		<label class="block text-sm font-medium">
+			Frequência
+			<input
+				name="recurrence"
+				required
+				value={editing?.recurrence ?? ''}
+				placeholder="Último domingo do mês"
+				class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+			/>
+		</label>
+		<label class="block text-sm font-medium">
+			Horário
+			<input
+				name="time_label"
+				required
+				value={editing?.time_label ?? ''}
+				placeholder="6:00 PM"
+				class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+			/>
+			<span class="mt-1 block text-xs text-slate-500">Ex.: 6:00 PM</span>
+		</label>
+		<label class="block text-sm font-medium">
+			Celebrante <span class="font-normal text-slate-500">(opcional)</span>
+			<input
+				name="priest"
+				value={editing?.priest ?? ''}
+				placeholder="Padre Francisco Pires"
+				class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+			/>
+		</label>
+		<label class="block text-sm font-medium">
+			Obs <span class="font-normal text-slate-500">(opcional)</span>
+			<textarea name="notes" rows="3" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">{editing?.notes ?? ''}</textarea>
+		</label>
+		<label class="block text-sm font-medium">
+			Local
+			<textarea
+				name="location"
+				required
+				rows="3"
+				placeholder={"Igreja Católica de São José Operário\n7405 S Redwood Rd, West Jordan, UT 84084"}
+				class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+			>{editing?.location ?? ''}</textarea>
+			<span class="mt-1 block text-xs text-slate-500">Nome da igreja e endereço (uma ou mais linhas).</span>
+		</label>
+		<label class="inline-flex items-center gap-2 text-sm">
+			<input type="checkbox" name="published" value="1" checked={editing ? editing.published === 1 : true} />
+			Publicado no site
+		</label>
+		<div class="flex flex-wrap gap-2">
+			<button type="submit" class="rounded-full bg-brand-blue px-5 py-2.5 text-sm font-semibold text-white">
+				{editing ? 'Atualizar' : 'Cadastrar missa'}
+			</button>
+			{editing && (
+				<a href="/admin/missa" class="rounded-full border px-5 py-2.5 text-sm font-semibold">
+					Cancelar
+				</a>
+			)}
+		</div>
+	</form>
+
+	<ul class="mt-8 space-y-3">
+		{
+			items.length === 0 ? (
+				<li class="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-600">
+					Nenhuma missa cadastrada ainda.
+				</li>
+			) : (
+				items.map((item) => (
+					<li class="rounded-2xl border border-slate-200 bg-white p-4">
+						<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+							<div>
+								<p class="font-semibold">
+									{item.recurrence} · {item.time_label}
+									{item.published !== 1 && (
+										<span class="ml-2 text-xs font-medium text-amber-700">rascunho</span>
+									)}
+								</p>
+								{item.priest && <p class="text-sm text-slate-600">{item.priest}</p>}
+								<p class="mt-1 whitespace-pre-line text-sm text-slate-500">{item.location}</p>
+							</div>
+							<div class="flex gap-2">
+								<a href={`/admin/missa?edit=${item.id}`} class="rounded-lg border px-3 py-2 text-sm">
+									Editar
+								</a>
+								<form method="POST" action="/api/missa/delete">
+									<input type="hidden" name="id" value={item.id} />
+									<button
+										type="submit"
+										class="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700"
+										onclick="return confirm('Excluir esta missa?')"
+									>
+										Excluir
+									</button>
+								</form>
+							</div>
+						</div>
+					</li>
+				))
+			)
+		}
+	</ul>
+</AdminLayout>

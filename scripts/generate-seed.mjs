@@ -1,6 +1,8 @@
 /**
  * Gera SQL de seed com hash PBKDF2 compatível com src/lib/auth.ts
  * Uso: node scripts/generate-seed.mjs [email] [password] [name]
+ *
+ * Usa UPSERT para poder resetar a senha se o usuário já existir.
  */
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -27,16 +29,23 @@ async function hashPassword(password) {
 const email = (process.argv[2] || 'admin@brasileiroscatolicosutah.org').toLowerCase();
 const password = process.argv[3] || 'TrocarSenha123!';
 const name = process.argv[4] || 'Administrador';
+const safeName = name.replace(/'/g, "''");
 
 const hash = await hashPassword(password);
 
-const sql = `-- Seed do primeiro admin
+const sql = `-- Seed / reset do admin
 -- E-mail: ${email}
--- Senha inicial: ${password}
+-- Senha: ${password}
 -- IMPORTANTE: altere a senha após o primeiro login.
 
-INSERT OR IGNORE INTO users (email, name, password_hash, role, active)
-VALUES ('${email}', '${name.replace(/'/g, "''")}', '${hash}', 'admin', 1);
+INSERT INTO users (email, name, password_hash, role, active)
+VALUES ('${email}', '${safeName}', '${hash}', 'admin', 1)
+ON CONFLICT(email) DO UPDATE SET
+	name = excluded.name,
+	password_hash = excluded.password_hash,
+	role = 'admin',
+	active = 1,
+	updated_at = datetime('now');
 `;
 
 const out = resolve(import.meta.dirname, 'seed-admin.sql');

@@ -1,3 +1,5 @@
+import type { Mass } from './types';
+
 export const SITE_URL = 'https://brasileiroscatolicosutah.org';
 
 export const DEFAULT_SETTINGS = {
@@ -18,17 +20,20 @@ export const DEFAULT_SETTINGS = {
 	calendar_enabled: '1',
 } as const;
 
-export const DEFAULT_SCHEDULE = {
+export const DEFAULT_MASS: Mass = {
 	id: 1,
 	recurrence: 'Último domingo do mês',
 	time_label: '6:00 PM',
-	church_name: 'Igreja Católica de São José Operário',
-	address: '7405 S Redwood Rd, West Jordan, UT 84084',
 	priest: 'Padre Francisco Pires',
 	notes: 'Missa em português para a comunidade brasileira católica em utah.',
-	maps_url: 'https://maps.google.com/?q=7405+S+Redwood+Rd,+West+Jordan,+UT+84084',
+	location: 'Igreja Católica de São José Operário\n7405 S Redwood Rd, West Jordan, UT 84084',
+	sort_order: 0,
+	published: 1,
+	created_at: new Date().toISOString(),
 	updated_at: new Date().toISOString(),
-} as const;
+};
+
+export const DEFAULT_MASSES: Mass[] = [DEFAULT_MASS];
 
 export const SEO_KEYWORDS = [
 	'missa em português',

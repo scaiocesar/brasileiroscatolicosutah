@@ -1,87 +1,94 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getDb, getMassSchedule, getSettings, getActiveFeaturedMass, mediaUrl } from '../lib/db';
-import { formatDateTimePt, getNextMonthlyMass } from '../lib/dates';
+import {
+	embedMapsUrlForLocation,
+	getActiveFeaturedMass,
+	getDb,
+	getSettings,
+	listMasses,
+	mapsUrlForLocation,
+	mediaUrl,
+} from '../lib/db';
 import FeaturedMassBanner from '../components/FeaturedMass.astro';
 
 const db = getDb(Astro.locals);
 const settings = await getSettings(db);
-const schedule = await getMassSchedule(db);
+const masses = await listMasses(db, { publishedOnly: true });
 const featured = await getActiveFeaturedMass(db);
-const nextMass = getNextMonthlyMass();
+const primaryMapsUrl = masses[0] ? mapsUrlForLocation(masses[0].location) : undefined;
 ---
 
 <BaseLayout
 	title="Horário da missa em português"
-	description="Missa em português em utah: último domingo do mês às 6:00 PM na Igreja São José Operário, West Jordan. Brasileiros católicos em Salt Lake City."
+	description="Missa em português em utah: horários e locais da comunidade Brasileiros Católicos em Salt Lake City e região."
 	settings={settings}
 >
-	{featured && <FeaturedMassBanner featured={featured} mapsUrl={schedule.maps_url} />}
+	{featured && <FeaturedMassBanner featured={featured} mapsUrl={primaryMapsUrl} />}
 
 	<section class="mx-auto max-w-6xl px-4 py-12 sm:px-6">
 		<p class="text-sm font-semibold uppercase tracking-wide text-brand-blue">Missa Utah</p>
 		<h1 class="mt-2 text-3xl font-extrabold text-brand-blue-dark sm:text-4xl">
 			Horário da missa em português
 		</h1>
-		<p class="mt-4 max-w-3xl text-slate-700">
-			A comunidade de brasileiros católicos em Salt Lake City e região celebra a missa em português
-			todo {schedule.recurrence.toLowerCase()}, às {schedule.time_label}, com {schedule.priest}.
-		</p>
 
-		<div class="mt-8 grid gap-6 md:grid-cols-2">
-			<article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
-				<h2 class="text-xl font-bold text-brand-blue">Próxima celebração</h2>
-				<p class="mt-3 text-lg font-semibold text-slate-900">{formatDateTimePt(nextMass)}</p>
-				<dl class="mt-4 space-y-3 text-sm text-slate-700">
-					<div>
-						<dt class="font-semibold text-slate-900">Frequência</dt>
-						<dd>{schedule.recurrence}</dd>
-					</div>
-					<div>
-						<dt class="font-semibold text-slate-900">Horário</dt>
-						<dd>{schedule.time_label}</dd>
-					</div>
-					<div>
-						<dt class="font-semibold text-slate-900">Celebrante</dt>
-						<dd>{schedule.priest}</dd>
-					</div>
-					{
-						schedule.notes && (
-							<div>
-								<dt class="font-semibold text-slate-900">Observações</dt>
-								<dd>{schedule.notes}</dd>
-							</div>
-						)
-					}
-				</dl>
-			</article>
-
-			<article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
-				<h2 class="text-xl font-bold text-brand-blue">Local</h2>
-				<p class="mt-3 font-semibold text-slate-900">{schedule.church_name}</p>
-				<p class="mt-2 text-slate-700">{schedule.address}</p>
-				<p class="mt-2 text-sm text-slate-600">
-					Perto de Salt Lake City — ideal para quem busca missa em português em utah.
-				</p>
-				<a
-					href={schedule.maps_url}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="mt-5 inline-flex rounded-full bg-brand-blue px-5 py-3 text-sm font-semibold text-white hover:bg-brand-blue-dark"
-				>
-					Como chegar
-				</a>
-				<div class="mt-6 overflow-hidden rounded-xl border border-slate-200">
-					<iframe
-						title="Mapa da Igreja São José Operário"
-						src="https://maps.google.com/maps?q=7405%20S%20Redwood%20Rd%20West%20Jordan%20UT&t=&z=15&ie=UTF8&iwloc=&output=embed"
-						class="h-56 w-full"
-						loading="lazy"
-						referrerpolicy="no-referrer-when-downgrade"
-					></iframe>
+		{
+			masses.length === 0 ? (
+				<div class="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-600">
+					Em breve publicaremos os horários das missas em português.
 				</div>
-			</article>
-		</div>
+			) : (
+				<ul class="mt-8 grid gap-6 md:grid-cols-2">
+					{masses.map((mass) => (
+						<li class="rounded-2xl border border-slate-200 bg-white p-6 shadow-card">
+							<h2 class="text-xl font-bold text-brand-blue">Missa</h2>
+							<dl class="mt-4 space-y-3 text-sm text-slate-700">
+								<div>
+									<dt class="font-semibold text-slate-900">Frequência</dt>
+									<dd>{mass.recurrence}</dd>
+								</div>
+								<div>
+									<dt class="font-semibold text-slate-900">Horário</dt>
+									<dd>{mass.time_label}</dd>
+								</div>
+								{mass.priest && (
+									<div>
+										<dt class="font-semibold text-slate-900">Celebrante</dt>
+										<dd>{mass.priest}</dd>
+									</div>
+								)}
+								{mass.notes && (
+									<div>
+										<dt class="font-semibold text-slate-900">Observações</dt>
+										<dd class="whitespace-pre-line">{mass.notes}</dd>
+									</div>
+								)}
+								<div>
+									<dt class="font-semibold text-slate-900">Local</dt>
+									<dd class="mt-1 whitespace-pre-line">{mass.location}</dd>
+								</div>
+							</dl>
+							<a
+								href={mapsUrlForLocation(mass.location)}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="mt-5 inline-flex rounded-full bg-brand-blue px-5 py-3 text-sm font-semibold text-white hover:bg-brand-blue-dark"
+							>
+								Como chegar
+							</a>
+							<div class="mt-6 overflow-hidden rounded-xl border border-slate-200">
+								<iframe
+									title={`Mapa: ${mass.location.split('\n')[0]}`}
+									src={embedMapsUrlForLocation(mass.location)}
+									class="h-56 w-full"
+									loading="lazy"
+									referrerpolicy="no-referrer-when-downgrade"
+								/>
+							</div>
+						</li>
+					))}
+				</ul>
+			)
+		}
 
 		{
 			featured && (

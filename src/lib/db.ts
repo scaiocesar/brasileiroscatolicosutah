@@ -1,5 +1,5 @@
-import { DEFAULT_SCHEDULE, DEFAULT_SETTINGS } from './constants';
-import type { EventItem, FeaturedMass, MassSchedule, SiteSettings, User } from './types';
+import { DEFAULT_MASS, DEFAULT_MASSES, DEFAULT_SETTINGS } from './constants';
+import type { EventItem, FeaturedMass, Mass, SiteSettings, User } from './types';
 
 export function getDb(locals: App.Locals): D1Database | null {
 	return locals.runtime?.env?.DB ?? null;
@@ -7,6 +7,14 @@ export function getDb(locals: App.Locals): D1Database | null {
 
 export function getMedia(locals: App.Locals): R2Bucket | null {
 	return locals.runtime?.env?.MEDIA ?? null;
+}
+
+export function mapsUrlForLocation(location: string): string {
+	return `https://maps.google.com/?q=${encodeURIComponent(location.replace(/\s*\n\s*/g, ', '))}`;
+}
+
+export function embedMapsUrlForLocation(location: string): string {
+	return `https://maps.google.com/maps?q=${encodeURIComponent(location.replace(/\s*\n\s*/g, ' '))}&t=&z=15&ie=UTF8&iwloc=&output=embed`;
 }
 
 export async function getSettings(db: D1Database | null): Promise<SiteSettings> {
@@ -42,14 +50,22 @@ export function isFeatureEnabled(value: string | undefined | null, defaultValue 
 	return value === '1' || value === 'true' || value === 'on';
 }
 
-export async function getMassSchedule(db: D1Database | null): Promise<MassSchedule> {
-	if (!db) return { ...DEFAULT_SCHEDULE };
+export async function listMasses(db: D1Database | null, { publishedOnly = true } = {}): Promise<Mass[]> {
+	if (!db) return publishedOnly ? DEFAULT_MASSES.filter((m) => m.published === 1) : [...DEFAULT_MASSES];
 	try {
-		const row = await db.prepare('SELECT * FROM mass_schedule WHERE id = 1').first<MassSchedule>();
-		return row ?? { ...DEFAULT_SCHEDULE };
+		const sql = publishedOnly
+			? `SELECT * FROM masses WHERE published = 1 ORDER BY sort_order ASC, id ASC`
+			: `SELECT * FROM masses ORDER BY sort_order ASC, id ASC`;
+		const rows = await db.prepare(sql).all<Mass>();
+		return rows.results ?? [];
 	} catch {
-		return { ...DEFAULT_SCHEDULE };
+		return publishedOnly ? DEFAULT_MASSES.filter((m) => m.published === 1) : [...DEFAULT_MASSES];
 	}
+}
+
+export async function getPrimaryMass(db: D1Database | null): Promise<Mass> {
+	const masses = await listMasses(db, { publishedOnly: true });
+	return masses[0] ?? { ...DEFAULT_MASS };
 }
 
 export async function getActiveFeaturedMass(db: D1Database | null): Promise<FeaturedMass | null> {

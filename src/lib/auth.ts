@@ -10,7 +10,9 @@ function bytesToHex(bytes: ArrayBuffer | Uint8Array): string {
 
 function hexToBytes(hex: string): Uint8Array {
 	const matches = hex.match(/.{1,2}/g) ?? [];
-	return new Uint8Array(matches.map((b) => parseInt(b, 16)));
+	const bytes = new Uint8Array(matches.length);
+	for (let i = 0; i < matches.length; i++) bytes[i] = parseInt(matches[i], 16);
+	return bytes;
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -52,8 +54,10 @@ export function createSessionId(): string {
 
 export function sessionExpiryDate(days = SESSION_DAYS): string {
 	const d = new Date();
-	d.setDate(d.getDate() + days);
-	return d.toISOString();
+	d.setUTCDate(d.getUTCDate() + days);
+	// SQLite datetime('now') format — comparable with expires_at > datetime('now')
+	const pad = (n: number) => String(n).padStart(2, '0');
+	return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
 }
 
 export function parseCookies(header: string | null): Record<string, string> {
