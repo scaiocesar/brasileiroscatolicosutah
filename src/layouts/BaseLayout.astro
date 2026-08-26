@@ -54,6 +54,16 @@ const og = ogImage.startsWith('http') ? ogImage : new URL(ogImage, SITE_URL).toS
 		{jsonLd && (
 			<script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
 		)}
+		<!-- Google tag (gtag.js) -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=G-W3Z983Y3S0" is:inline></script>
+		<script is:inline>
+			window.dataLayer = window.dataLayer || [];
+			function gtag() {
+				dataLayer.push(arguments);
+			}
+			gtag('js', new Date());
+			gtag('config', 'G-W3Z983Y3S0');
+		</script>
 	</head>
 	<body class="min-h-screen flex flex-col">
 		<a
