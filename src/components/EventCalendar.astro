@@ -51,9 +51,12 @@ for (const event of events) {
 					>
 						{day && <div class="text-xs font-semibold text-slate-700">{day}</div>}
 						{dayEvents.slice(0, 2).map((ev) => (
-							<div class="mt-1 truncate rounded bg-brand-blue px-1 py-0.5 text-[10px] font-medium text-white sm:text-xs">
+							<a
+								href={`/eventos/${ev.id}`}
+								class="mt-1 block truncate rounded bg-brand-blue px-1 py-0.5 text-[10px] font-medium text-white hover:bg-brand-blue-dark sm:text-xs"
+							>
 								{ev.title}
-							</div>
+							</a>
 						))}
 					</div>
 				);

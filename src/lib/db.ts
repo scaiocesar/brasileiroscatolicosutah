@@ -135,6 +135,22 @@ export async function listEventsInMonth(
 	}
 }
 
+export async function getEventById(
+	db: D1Database | null,
+	id: number,
+	{ publishedOnly = true } = {},
+): Promise<EventItem | null> {
+	if (!db || !Number.isFinite(id)) return null;
+	try {
+		const sql = publishedOnly
+			? 'SELECT * FROM events WHERE id = ? AND published = 1'
+			: 'SELECT * FROM events WHERE id = ?';
+		return (await db.prepare(sql).bind(id).first<EventItem>()) ?? null;
+	} catch {
+		return null;
+	}
+}
+
 export async function listAllEvents(db: D1Database): Promise<EventItem[]> {
 	const rows = await db.prepare('SELECT * FROM events ORDER BY starts_at DESC').all<EventItem>();
 	return rows.results ?? [];
@@ -151,4 +167,13 @@ export function mediaUrl(key: string | null | undefined): string | null {
 	if (!key) return null;
 	if (key.startsWith('http') || key.startsWith('/')) return key;
 	return `/api/media/${key}`;
+}
+
+export async function saveMediaImage(media: R2Bucket, file: File, folder: string): Promise<string> {
+	const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+	const key = `${folder}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext || 'jpg'}`;
+	await media.put(key, await file.arrayBuffer(), {
+		httpMetadata: { contentType: file.type || 'image/jpeg' },
+	});
+	return key;
 }

@@ -1,7 +1,7 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { requireAuth } from '../../lib/admin';
-import { getSettings, isFeatureEnabled, listAllEvents } from '../../lib/db';
+import { getSettings, isFeatureEnabled, listAllEvents, mediaUrl } from '../../lib/db';
 import { formatDateTimePt, toDatetimeLocalValue } from '../../lib/dates';
 
 const auth = await requireAuth(Astro);
@@ -16,6 +16,7 @@ const editing = editId ? items.find((i) => String(i.id) === editId) : null;
 const msg = Astro.url.searchParams.get('msg');
 const eventosOn = isFeatureEnabled(settings.page_eventos_enabled);
 const calendarOn = isFeatureEnabled(settings.calendar_enabled);
+const editingImage = editing ? mediaUrl(editing.image_key) : null;
 ---
 
 <AdminLayout title="Eventos" userName={user!.name} role={user!.role}>
@@ -25,6 +26,7 @@ const calendarOn = isFeatureEnabled(settings.calendar_enabled);
 	{msg === 'saved' && <p class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Evento salvo.</p>}
 	{msg === 'deleted' && <p class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Evento removido.</p>}
 	{msg === 'pages' && <p class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Visibilidade atualizada.</p>}
+	{msg === 'error' && <p class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">Não foi possível salvar o evento.</p>}
 
 	<form method="POST" action="/api/events/visibility" class="mt-6 space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
 		<p class="text-sm font-semibold text-brand-blue">Visibilidade no site</p>
@@ -41,7 +43,12 @@ const calendarOn = isFeatureEnabled(settings.calendar_enabled);
 		</button>
 	</form>
 
-	<form method="POST" action="/api/events" class="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+	<form
+		method="POST"
+		action="/api/events"
+		enctype="multipart/form-data"
+		class="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5"
+	>
 		<input type="hidden" name="id" value={editing?.id ?? ''} />
 		<label class="block text-sm font-medium">
 			Título
@@ -49,11 +56,22 @@ const calendarOn = isFeatureEnabled(settings.calendar_enabled);
 		</label>
 		<label class="block text-sm font-medium">
 			Início
-			<input type="datetime-local" name="starts_at" required value={editing ? toDatetimeLocalValue(editing.starts_at) : ''} class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+			<input
+				type="datetime-local"
+				name="starts_at"
+				required
+				value={editing ? toDatetimeLocalValue(editing.starts_at) : ''}
+				class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+			/>
 		</label>
 		<label class="block text-sm font-medium">
 			Fim (opcional)
-			<input type="datetime-local" name="ends_at" value={editing?.ends_at ? toDatetimeLocalValue(editing.ends_at) : ''} class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+			<input
+				type="datetime-local"
+				name="ends_at"
+				value={editing?.ends_at ? toDatetimeLocalValue(editing.ends_at) : ''}
+				class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+			/>
 		</label>
 		<label class="block text-sm font-medium">
 			Local
@@ -63,13 +81,41 @@ const calendarOn = isFeatureEnabled(settings.calendar_enabled);
 			Descrição
 			<textarea name="description" rows="3" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">{editing?.description ?? ''}</textarea>
 		</label>
+		<label class="block text-sm font-medium">
+			Imagem (opcional)
+			<input type="file" name="image" accept="image/*" class="mt-1 w-full text-sm" />
+			{
+				editingImage ? (
+					<span class="mt-2 flex items-start gap-3">
+						<img src={editingImage} alt="" class="h-20 w-28 rounded-lg object-cover" />
+						<span class="text-xs text-slate-500">Deixe em branco para manter a imagem atual.</span>
+					</span>
+				) : (
+					<span class="mt-1 block text-xs text-slate-500">Aparece na página de detalhes do evento.</span>
+				)
+			}
+		</label>
+		{
+			editingImage && (
+				<label class="inline-flex items-center gap-2 text-sm text-red-700">
+					<input type="checkbox" name="remove_image" value="1" />
+					Remover imagem atual
+				</label>
+			)
+		}
 		<label class="inline-flex items-center gap-2 text-sm">
 			<input type="checkbox" name="published" value="1" checked={editing ? editing.published === 1 : true} />
 			Publicado
 		</label>
 		<div class="flex flex-wrap gap-2">
-			<button type="submit" class="rounded-full bg-brand-blue px-5 py-2.5 text-sm font-semibold text-white">{editing ? 'Atualizar' : 'Criar evento'}</button>
-			{editing && <a href="/admin/events" class="rounded-full border px-5 py-2.5 text-sm font-semibold">Cancelar</a>}
+			<button type="submit" class="rounded-full bg-brand-blue px-5 py-2.5 text-sm font-semibold text-white">
+				{editing ? 'Atualizar' : 'Criar evento'}
+			</button>
+			{editing && (
+				<a href="/admin/events" class="rounded-full border px-5 py-2.5 text-sm font-semibold">
+					Cancelar
+				</a>
+			)}
 		</div>
 	</form>
 
@@ -78,16 +124,33 @@ const calendarOn = isFeatureEnabled(settings.calendar_enabled);
 			items.map((item) => (
 				<li class="rounded-2xl border border-slate-200 bg-white p-4">
 					<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-						<div>
-							<p class="font-semibold">{item.title}</p>
-							<p class="text-sm text-slate-600">{formatDateTimePt(item.starts_at)}</p>
-							{item.location && <p class="text-sm text-slate-500">{item.location}</p>}
+						<div class="flex gap-3">
+							{mediaUrl(item.image_key) && (
+								<img
+									src={mediaUrl(item.image_key)!}
+									alt=""
+									class="h-16 w-24 shrink-0 rounded-lg object-cover"
+								/>
+							)}
+							<div>
+								<p class="font-semibold">{item.title}</p>
+								<p class="text-sm text-slate-600">{formatDateTimePt(item.starts_at)}</p>
+								{item.location && <p class="text-sm text-slate-500">{item.location}</p>}
+							</div>
 						</div>
 						<div class="flex gap-2">
-							<a href={`/admin/events?edit=${item.id}`} class="rounded-lg border px-3 py-2 text-sm">Editar</a>
+							<a href={`/admin/events?edit=${item.id}`} class="rounded-lg border px-3 py-2 text-sm">
+								Editar
+							</a>
 							<form method="POST" action="/api/events/delete">
 								<input type="hidden" name="id" value={item.id} />
-								<button type="submit" class="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700" onclick="return confirm('Excluir evento?')">Excluir</button>
+								<button
+									type="submit"
+									class="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700"
+									onclick="return confirm('Excluir evento?')"
+								>
+									Excluir
+								</button>
 							</form>
 						</div>
 					</div>

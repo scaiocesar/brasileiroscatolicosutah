@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { requireAuth } from '../../lib/admin';
+import { sanitizeRichText } from '../../lib/html';
 
 export const POST: APIRoute = async (context) => {
 	const auth = await requireAuth(context);
@@ -9,7 +10,7 @@ export const POST: APIRoute = async (context) => {
 
 	const form = await context.request.formData();
 	const title = String(form.get('about_title') || '').trim();
-	const content = String(form.get('about_content') || '').trim();
+	const content = sanitizeRichText(String(form.get('about_content') || ''));
 	const enabled = form.get('page_sobre_enabled') ? '1' : '0';
 
 	if (!title || !content) return context.redirect('/admin/about?msg=error');

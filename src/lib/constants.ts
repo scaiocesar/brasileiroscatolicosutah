@@ -14,7 +14,7 @@ export const DEFAULT_SETTINGS = {
 		'Bem-vindo à comunidade Brasileiros Católicos Utah! Este é um espaço onde nossa comunidade se reúne para compartilhar fé, cultura e amizade. Explore o site para descobrir missas em português, eventos e como participar.',
 	about_title: 'Sobre a comunidade',
 	about_content:
-		'Somos a comunidade Brasileiros Católicos Utah.\n\nReunimos famílias e fiéis brasileiros em Salt Lake City e região para celebrar a missa em português, viver a fé católica e fortalecer amizades na fé.\n\nNossa missa acontece todo último domingo do mês na Igreja São José Operário, em West Jordan.',
+		'<p>Somos a comunidade Brasileiros Católicos Utah.</p><p>Reunimos famílias e fiéis brasileiros em Salt Lake City e região para celebrar a missa em português, viver a fé católica e fortalecer amizades na fé.</p><p>Nossa missa acontece todo último domingo do mês na Igreja São José Operário, em West Jordan.</p>',
 	page_sobre_enabled: '1',
 	page_eventos_enabled: '1',
 	calendar_enabled: '1',

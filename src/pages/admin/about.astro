@@ -2,6 +2,7 @@
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { requireAuth } from '../../lib/admin';
 import { getSettings, isFeatureEnabled } from '../../lib/db';
+import { richTextForEditor } from '../../lib/html';
 
 const auth = await requireAuth(Astro);
 if (auth.redirect) return auth.redirect;
@@ -11,15 +12,23 @@ if (!db) return Astro.redirect('/admin/login?error=db');
 const settings = await getSettings(db);
 const msg = Astro.url.searchParams.get('msg');
 const sobreOn = isFeatureEnabled(settings.page_sobre_enabled);
+const editorHtml = richTextForEditor(settings.about_content);
 ---
 
 <AdminLayout title="Sobre" userName={user!.name} role={user!.role}>
+	<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
+
 	<h1 class="text-2xl font-bold text-brand-blue-dark">Página Sobre</h1>
-	<p class="mt-1 text-sm text-slate-600">Edite o texto da página e ligue ou desligue a publicação no site.</p>
+	<p class="mt-1 text-sm text-slate-600">
+		Edite o texto com formatação (negrito, links e parágrafos) e ligue ou desligue a publicação no site.
+	</p>
 
 	{msg === 'saved' && <p class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Salvo com sucesso.</p>}
+	{msg === 'error' && (
+		<p class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">Não foi possível salvar. Preencha título e conteúdo.</p>
+	)}
 
-	<form method="POST" action="/api/about" class="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
+	<form id="about-form" method="POST" action="/api/about" class="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
 		<label class="inline-flex items-center gap-2 text-sm font-medium">
 			<input type="checkbox" name="page_sobre_enabled" value="1" checked={sobreOn} />
 			Exibir página Sobre no site
@@ -35,19 +44,71 @@ const sobreOn = isFeatureEnabled(settings.page_sobre_enabled);
 			/>
 		</label>
 
-		<label class="block text-sm font-medium">
-			Conteúdo
-			<textarea
-				name="about_content"
-				rows="12"
-				required
-				class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
-			>{settings.about_content}</textarea>
-			<span class="mt-1 block text-xs text-slate-500">Use uma linha em branco para separar parágrafos.</span>
-		</label>
+		<div class="block text-sm font-medium">
+			<span>Conteúdo</span>
+			<input type="hidden" name="about_content" id="about_content" value={editorHtml} />
+			<div class="mt-1 overflow-hidden rounded-lg border border-slate-300 bg-white">
+				<div id="about-editor"></div>
+			</div>
+			<span class="mt-1 block text-xs font-normal text-slate-500">
+				Use a barra de ferramentas para negrito, links e listas. Enter cria um novo parágrafo.
+			</span>
+		</div>
 
 		<button type="submit" class="rounded-full bg-brand-blue px-5 py-2.5 text-sm font-semibold text-white">
 			Salvar
 		</button>
 	</form>
+
+	<script is:inline src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+	<script is:inline>
+		(function () {
+			const form = document.getElementById('about-form');
+			const hidden = document.getElementById('about_content');
+			const mount = document.getElementById('about-editor');
+			if (!form || !hidden || !mount || typeof Quill === 'undefined') return;
+
+			const initial = hidden.value || '<p><br></p>';
+
+			const quill = new Quill(mount, {
+				theme: 'snow',
+				placeholder: 'Escreva sobre a comunidade…',
+				modules: {
+					toolbar: [
+						['bold'],
+						[{ list: 'ordered' }, { list: 'bullet' }],
+						['link'],
+						['clean'],
+					],
+				},
+			});
+
+			quill.root.innerHTML = initial;
+
+			form.addEventListener('submit', function () {
+				const html = quill.root.innerHTML;
+				const text = quill.getText().trim();
+				hidden.value = text ? html : '';
+			});
+		})();
+	</script>
+
+	<style is:global>
+		#about-editor.ql-container.ql-snow {
+			border: none;
+			font-size: 0.95rem;
+		}
+		#about-editor .ql-editor {
+			min-height: 220px;
+		}
+		#about-editor .ql-editor a {
+			color: #1d4ed8;
+			text-decoration: underline;
+		}
+		.ql-toolbar.ql-snow {
+			border: none;
+			border-bottom: 1px solid #cbd5e1;
+			background: #f8fafc;
+		}
+	</style>
 </AdminLayout>

@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getDb, getSettings, isFeatureEnabled } from '../lib/db';
+import { sanitizeRichText } from '../lib/html';
 
 const db = getDb(Astro.locals);
 const settings = await getSettings(db);
@@ -9,10 +10,7 @@ if (!isFeatureEnabled(settings.page_sobre_enabled)) {
 	return Astro.redirect('/404');
 }
 
-const paragraphs = settings.about_content
-	.split(/\n\s*\n/)
-	.map((p) => p.trim())
-	.filter(Boolean);
+const aboutHtml = sanitizeRichText(settings.about_content);
 ---
 
 <BaseLayout
@@ -23,13 +21,10 @@ const paragraphs = settings.about_content
 	<section class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
 		<p class="text-sm font-semibold uppercase tracking-wide text-brand-blue">Comunidade</p>
 		<h1 class="mt-2 text-3xl font-extrabold text-brand-blue-dark sm:text-4xl">{settings.about_title}</h1>
-		<div class="mt-8 space-y-4 text-base leading-relaxed text-slate-700 sm:text-lg">
-			{
-				paragraphs.map((p) => (
-					<p class="whitespace-pre-line">{p}</p>
-				))
-			}
-		</div>
+		<div
+			class="about-content mt-8 space-y-4 text-base leading-relaxed text-slate-700 sm:text-lg"
+			set:html={aboutHtml}
+		/>
 		<a
 			href="/missa"
 			class="mt-10 inline-flex rounded-full bg-brand-blue px-5 py-3 text-sm font-semibold text-white hover:bg-brand-blue-dark"
@@ -38,3 +33,40 @@ const paragraphs = settings.about_content
 		</a>
 	</section>
 </BaseLayout>
+
+<style>
+	.about-content :global(p) {
+		margin: 0;
+	}
+	.about-content :global(p + p) {
+		margin-top: 1rem;
+	}
+	.about-content :global(strong),
+	.about-content :global(b) {
+		font-weight: 700;
+		color: #0f172a;
+	}
+	.about-content :global(a) {
+		color: #1d4ed8;
+		font-weight: 600;
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+	.about-content :global(a:hover) {
+		color: #1e3a8a;
+	}
+	.about-content :global(ul),
+	.about-content :global(ol) {
+		margin: 0.75rem 0 0;
+		padding-left: 1.25rem;
+	}
+	.about-content :global(ul) {
+		list-style: disc;
+	}
+	.about-content :global(ol) {
+		list-style: decimal;
+	}
+	.about-content :global(li + li) {
+		margin-top: 0.35rem;
+	}
+</style>
