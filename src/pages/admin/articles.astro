@@ -1,0 +1,242 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { requireAuth } from '../../lib/admin';
+import { getSettings, isFeatureEnabled, listAllArticles, mediaUrl } from '../../lib/db';
+import { articleHtmlForEditor } from '../../lib/html';
+import { formatDatePt } from '../../lib/dates';
+
+const auth = await requireAuth(Astro);
+if (auth.redirect) return auth.redirect;
+const { user, db } = auth;
+if (!db) return Astro.redirect('/admin/login?error=db');
+
+const settings = await getSettings(db);
+const items = await listAllArticles(db);
+const editId = Astro.url.searchParams.get('edit');
+const editing = editId ? items.find((i) => String(i.id) === editId) : null;
+const msg = Astro.url.searchParams.get('msg');
+const artigosOn = isFeatureEnabled(settings.page_artigos_enabled);
+const editorHtml = articleHtmlForEditor(editing?.body ?? '');
+const editingCover = editing ? mediaUrl(editing.cover_image_key) : null;
+---
+
+<AdminLayout title="Artigos" userName={user!.name} role={user!.role}>
+	<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet" />
+
+	<h1 class="text-2xl font-bold text-brand-blue-dark">Artigos</h1>
+	<p class="mt-1 text-sm text-slate-600">Publique textos sobre a comunidade com formatação e imagens.</p>
+
+	{msg === 'saved' && <p class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Artigo salvo.</p>}
+	{msg === 'deleted' && <p class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Artigo removido.</p>}
+	{msg === 'pages' && <p class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">Visibilidade atualizada.</p>}
+	{msg === 'error' && <p class="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800">Não foi possível salvar o artigo.</p>}
+
+	<form method="POST" action="/api/articles/visibility" class="mt-6 space-y-3 rounded-2xl border border-slate-200 bg-white p-5">
+		<p class="text-sm font-semibold text-brand-blue">Visibilidade no site</p>
+		<label class="flex items-center gap-2 text-sm">
+			<input type="checkbox" name="page_artigos_enabled" value="1" checked={artigosOn} />
+			Exibir página Artigos no menu e no site
+		</label>
+		<button type="submit" class="rounded-full bg-slate-800 px-4 py-2 text-sm font-semibold text-white">
+			Salvar visibilidade
+		</button>
+	</form>
+
+	<form
+		id="article-form"
+		method="POST"
+		action="/api/articles"
+		enctype="multipart/form-data"
+		class="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5"
+	>
+		<input type="hidden" name="id" value={editing?.id ?? ''} />
+		<label class="block text-sm font-medium">
+			Título
+			<input name="title" required value={editing?.title ?? ''} class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
+		</label>
+		<label class="block text-sm font-medium">
+			Resumo (opcional)
+			<textarea name="excerpt" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Breve descrição para a listagem">{editing?.excerpt ?? ''}</textarea>
+		</label>
+
+		<div class="block text-sm font-medium">
+			<span>Conteúdo</span>
+			<input type="hidden" name="body" id="article_body" value={editorHtml} />
+			<div class="mt-1 overflow-hidden rounded-lg border border-slate-300 bg-white">
+				<div id="article-editor"></div>
+			</div>
+			<span class="mt-1 block text-xs font-normal text-slate-500">
+				Use a barra de ferramentas para formatação. Clique no ícone de imagem para enviar fotos.
+			</span>
+		</div>
+
+		<label class="block text-sm font-medium">
+			Imagem de capa (opcional)
+			<input type="file" name="cover_image" accept="image/*" class="mt-1 w-full text-sm" />
+			{
+				editingCover ? (
+					<span class="mt-2 flex items-start gap-3">
+						<img src={editingCover} alt="" class="h-20 w-28 rounded-lg object-cover" />
+						<span class="text-xs text-slate-500">Deixe em branco para manter a imagem atual.</span>
+					</span>
+				) : (
+					<span class="mt-1 block text-xs text-slate-500">Aparece na listagem e no topo do artigo.</span>
+				)
+			}
+		</label>
+		{
+			editingCover && (
+				<label class="inline-flex items-center gap-2 text-sm text-red-700">
+					<input type="checkbox" name="remove_cover_image" value="1" />
+					Remover imagem de capa
+				</label>
+			)
+		}
+		<label class="inline-flex items-center gap-2 text-sm">
+			<input type="checkbox" name="published" value="1" checked={editing ? editing.published === 1 : true} />
+			Publicado
+		</label>
+		<div class="flex flex-wrap gap-2">
+			<button type="submit" class="rounded-full bg-brand-blue px-5 py-2.5 text-sm font-semibold text-white">
+				{editing ? 'Atualizar' : 'Criar artigo'}
+			</button>
+			{editing && (
+				<a href="/admin/articles" class="rounded-full border px-5 py-2.5 text-sm font-semibold">
+					Cancelar
+				</a>
+			)}
+		</div>
+	</form>
+
+	<ul class="mt-8 space-y-3">
+		{
+			items.map((item) => (
+				<li class="rounded-2xl border border-slate-200 bg-white p-4">
+					<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+						<div class="flex gap-3">
+							{mediaUrl(item.cover_image_key) && (
+								<img
+									src={mediaUrl(item.cover_image_key)!}
+									alt=""
+									class="h-16 w-24 shrink-0 rounded-lg object-cover"
+								/>
+							)}
+							<div>
+								<p class="font-semibold">{item.title}</p>
+								<p class="text-sm text-slate-600">{formatDatePt(item.created_at)}</p>
+								{item.excerpt && <p class="mt-1 line-clamp-2 text-sm text-slate-500">{item.excerpt}</p>}
+								{item.published === 0 && <p class="mt-1 text-xs font-semibold text-amber-700">Rascunho</p>}
+							</div>
+						</div>
+						<div class="flex gap-2">
+							<a href={`/admin/articles?edit=${item.id}`} class="rounded-lg border px-3 py-2 text-sm">
+								Editar
+							</a>
+							<form method="POST" action="/api/articles/delete">
+								<input type="hidden" name="id" value={item.id} />
+								<button
+									type="submit"
+									class="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-700"
+									onclick="return confirm('Excluir artigo?')"
+								>
+									Excluir
+								</button>
+							</form>
+						</div>
+					</div>
+				</li>
+			))
+		}
+	</ul>
+
+	<script is:inline src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+	<script is:inline>
+		(function () {
+			const form = document.getElementById('article-form');
+			const hidden = document.getElementById('article_body');
+			const mount = document.getElementById('article-editor');
+			if (!form || !hidden || !mount || typeof Quill === 'undefined') return;
+
+			const initial = hidden.value || '<p><br></p>';
+
+			const quill = new Quill(mount, {
+				theme: 'snow',
+				placeholder: 'Escreva o artigo…',
+				modules: {
+					toolbar: [
+						[{ header: [2, 3, false] }],
+						['bold'],
+						[{ list: 'ordered' }, { list: 'bullet' }],
+						['link', 'image'],
+						['clean'],
+					],
+				},
+			});
+
+			quill.root.innerHTML = initial;
+
+			const toolbar = quill.getModule('toolbar');
+			toolbar.addHandler('image', function () {
+				const input = document.createElement('input');
+				input.setAttribute('type', 'file');
+				input.setAttribute('accept', 'image/*');
+				input.click();
+				input.onchange = async function () {
+					const file = input.files && input.files[0];
+					if (!file) return;
+
+					const formData = new FormData();
+					formData.append('image', file);
+
+					try {
+						const res = await fetch('/api/articles/upload-image', {
+							method: 'POST',
+							body: formData,
+							credentials: 'same-origin',
+						});
+						const data = await res.json();
+						if (!res.ok || !data.url) {
+							alert('Não foi possível enviar a imagem.');
+							return;
+						}
+						const range = quill.getSelection(true);
+						quill.insertEmbed(range.index, 'image', data.url);
+						quill.setSelection(range.index + 1);
+					} catch {
+						alert('Não foi possível enviar a imagem.');
+					}
+				};
+			});
+
+			form.addEventListener('submit', function () {
+				const html = quill.root.innerHTML;
+				const text = quill.getText().trim();
+				hidden.value = text ? html : '';
+			});
+		})();
+	</script>
+
+	<style is:global>
+		#article-editor.ql-container.ql-snow {
+			border: none;
+			font-size: 0.95rem;
+		}
+		#article-editor .ql-editor {
+			min-height: 280px;
+		}
+		#article-editor .ql-editor a {
+			color: #1d4ed8;
+			text-decoration: underline;
+		}
+		#article-editor .ql-editor img {
+			max-width: 100%;
+			height: auto;
+			border-radius: 0.5rem;
+		}
+		.ql-toolbar.ql-snow {
+			border: none;
+			border-bottom: 1px solid #cbd5e1;
+			background: #f8fafc;
+		}
+	</style>
+</AdminLayout>

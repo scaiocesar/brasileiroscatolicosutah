@@ -1,0 +1,130 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getArticleById, getDb, getSettings, isFeatureEnabled, mediaUrl } from '../../lib/db';
+import { sanitizeArticleHtml } from '../../lib/html';
+import { formatDatePt } from '../../lib/dates';
+
+const db = getDb(Astro.locals);
+const settings = await getSettings(db);
+
+if (!isFeatureEnabled(settings.page_artigos_enabled)) {
+	return Astro.redirect('/404');
+}
+
+const id = Number(Astro.params.id);
+const article = await getArticleById(db, id, { publishedOnly: true });
+
+if (!article) {
+	return Astro.redirect('/404');
+}
+
+const cover = mediaUrl(article.cover_image_key);
+const bodyHtml = sanitizeArticleHtml(article.body);
+const description =
+	article.excerpt?.trim() || `${article.title} — artigo da comunidade Brasileiros Católicos Utah.`;
+---
+
+<BaseLayout
+	title={article.title}
+	description={description}
+	settings={settings}
+	ogImage={cover ?? undefined}
+	canonicalPath={`/artigos/${article.id}`}
+>
+	<section class="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+		<a href="/artigos" class="text-sm font-semibold text-brand-blue hover:underline">← Voltar aos artigos</a>
+
+		<p class="mt-6 text-sm font-semibold uppercase tracking-wide text-brand-blue">
+			{formatDatePt(article.created_at)}
+		</p>
+		<h1 class="mt-2 text-3xl font-extrabold text-brand-blue-dark sm:text-4xl">{article.title}</h1>
+
+		{
+			cover && (
+				<img
+					src={cover}
+					alt={`Imagem de capa: ${article.title}`}
+					width="1200"
+					height="800"
+					class="mt-8 w-full rounded-2xl object-cover shadow-card"
+					loading="eager"
+				/>
+			)
+		}
+
+		<div
+			class="article-content mt-8 space-y-4 text-base leading-relaxed text-slate-700 sm:text-lg"
+			set:html={bodyHtml}
+		/>
+
+		<a
+			href="/artigos"
+			class="mt-10 inline-flex rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-brand-cream"
+		>
+			Ver todos os artigos
+		</a>
+	</section>
+</BaseLayout>
+
+<style>
+	.article-content :global(p) {
+		margin: 0;
+	}
+	.article-content :global(p + p) {
+		margin-top: 1rem;
+	}
+	.article-content :global(h2) {
+		margin-top: 2rem;
+		font-size: 1.5rem;
+		font-weight: 800;
+		color: #0f172a;
+	}
+	.article-content :global(h3) {
+		margin-top: 1.5rem;
+		font-size: 1.25rem;
+		font-weight: 700;
+		color: #0f172a;
+	}
+	.article-content :global(strong),
+	.article-content :global(b) {
+		font-weight: 700;
+		color: #0f172a;
+	}
+	.article-content :global(a) {
+		color: #1d4ed8;
+		font-weight: 600;
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+	.article-content :global(a:hover) {
+		color: #1e3a8a;
+	}
+	.article-content :global(ul),
+	.article-content :global(ol) {
+		margin: 0.75rem 0 0;
+		padding-left: 1.25rem;
+	}
+	.article-content :global(ul) {
+		list-style: disc;
+	}
+	.article-content :global(ol) {
+		list-style: decimal;
+	}
+	.article-content :global(li + li) {
+		margin-top: 0.35rem;
+	}
+	.article-content :global(blockquote) {
+		margin-top: 1rem;
+		border-left: 4px solid #cbd5e1;
+		padding-left: 1rem;
+		color: #475569;
+		font-style: italic;
+	}
+	.article-content :global(img) {
+		margin-top: 1.5rem;
+		width: 100%;
+		height: auto;
+		border-radius: 1rem;
+		box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+	}
+</style>

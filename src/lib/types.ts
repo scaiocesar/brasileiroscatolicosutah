@@ -49,6 +49,18 @@ export type EventItem = {
 	updated_at: string;
 };
 
+export type Article = {
+	id: number;
+	title: string;
+	excerpt: string | null;
+	body: string;
+	cover_image_key: string | null;
+	published: number;
+	created_by: number | null;
+	created_at: string;
+	updated_at: string;
+};
+
 export type SiteSettings = {
 	site_name: string;
 	tagline: string;
@@ -62,5 +74,6 @@ export type SiteSettings = {
 	about_content: string;
 	page_sobre_enabled: string;
 	page_eventos_enabled: string;
+	page_artigos_enabled: string;
 	calendar_enabled: string;
 };

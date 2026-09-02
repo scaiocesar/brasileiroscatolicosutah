@@ -9,6 +9,7 @@ export const GET: APIRoute = async ({ locals }) => {
 	const pages = ['', '/missa', '/contato'];
 	if (isFeatureEnabled(settings.page_sobre_enabled)) pages.push('/sobre');
 	if (isFeatureEnabled(settings.page_eventos_enabled)) pages.push('/eventos');
+	if (isFeatureEnabled(settings.page_artigos_enabled)) pages.push('/artigos');
 
 	const lastmod = new Date().toISOString().slice(0, 10);
 	const urls = pages

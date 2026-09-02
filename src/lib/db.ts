@@ -1,5 +1,5 @@
 import { DEFAULT_MASS, DEFAULT_MASSES, DEFAULT_SETTINGS } from './constants';
-import type { EventItem, FeaturedMass, Mass, SiteSettings, User } from './types';
+import type { Article, EventItem, FeaturedMass, Mass, SiteSettings, User } from './types';
 
 export function getDb(locals: App.Locals): D1Database | null {
 	return locals.runtime?.env?.DB ?? null;
@@ -153,6 +153,45 @@ export async function getEventById(
 
 export async function listAllEvents(db: D1Database): Promise<EventItem[]> {
 	const rows = await db.prepare('SELECT * FROM events ORDER BY starts_at DESC').all<EventItem>();
+	return rows.results ?? [];
+}
+
+export async function listPublishedArticles(db: D1Database | null, limit = 50): Promise<Article[]> {
+	if (!db) return [];
+	try {
+		const rows = await db
+			.prepare(
+				`SELECT * FROM articles
+				 WHERE published = 1
+				 ORDER BY created_at DESC
+				 LIMIT ?`,
+			)
+			.bind(limit)
+			.all<Article>();
+		return rows.results ?? [];
+	} catch {
+		return [];
+	}
+}
+
+export async function getArticleById(
+	db: D1Database | null,
+	id: number,
+	{ publishedOnly = true } = {},
+): Promise<Article | null> {
+	if (!db || !Number.isFinite(id)) return null;
+	try {
+		const sql = publishedOnly
+			? 'SELECT * FROM articles WHERE id = ? AND published = 1'
+			: 'SELECT * FROM articles WHERE id = ?';
+		return (await db.prepare(sql).bind(id).first<Article>()) ?? null;
+	} catch {
+		return null;
+	}
+}
+
+export async function listAllArticles(db: D1Database): Promise<Article[]> {
+	const rows = await db.prepare('SELECT * FROM articles ORDER BY created_at DESC').all<Article>();
 	return rows.results ?? [];
 }
 
