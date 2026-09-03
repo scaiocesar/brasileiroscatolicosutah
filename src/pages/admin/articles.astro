@@ -1,9 +1,9 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import { requireAuth } from '../../lib/admin';
-import { getSettings, isFeatureEnabled, listAllArticles, mediaUrl } from '../../lib/db';
+import { getSettings, isFeatureEnabled, listAllArticles, mediaUrl, parseGalleryKeys } from '../../lib/db';
 import { articleHtmlForEditor } from '../../lib/html';
-import { formatDatePt } from '../../lib/dates';
+import { formatDatePt, toDatetimeLocalValue } from '../../lib/dates';
 
 const auth = await requireAuth(Astro);
 if (auth.redirect) return auth.redirect;
@@ -18,6 +18,8 @@ const msg = Astro.url.searchParams.get('msg');
 const artigosOn = isFeatureEnabled(settings.page_artigos_enabled);
 const editorHtml = articleHtmlForEditor(editing?.body ?? '');
 const editingCover = editing ? mediaUrl(editing.cover_image_key) : null;
+const editingGallery = editing ? parseGalleryKeys(editing.gallery_keys) : [];
+const editingPublishedAt = editing ? toDatetimeLocalValue(editing.published_at) : '';
 ---
 
 <AdminLayout title="Artigos" userName={user!.name} role={user!.role}>
@@ -50,10 +52,24 @@ const editingCover = editing ? mediaUrl(editing.cover_image_key) : null;
 		class="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-5"
 	>
 		<input type="hidden" name="id" value={editing?.id ?? ''} />
+		<input type="hidden" name="gallery_keys" id="gallery_keys" value={JSON.stringify(editingGallery)} />
+
 		<label class="block text-sm font-medium">
 			Título
 			<input name="title" required value={editing?.title ?? ''} class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" />
 		</label>
+
+		<label class="block text-sm font-medium">
+			Data da publicação
+			<input
+				type="datetime-local"
+				name="published_at"
+				value={editingPublishedAt}
+				class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+			/>
+			<span class="mt-1 block text-xs text-slate-500">Data que aparece no artigo. Deixe em branco para usar a data atual.</span>
+		</label>
+
 		<label class="block text-sm font-medium">
 			Resumo (opcional)
 			<textarea name="excerpt" rows="2" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="Breve descrição para a listagem">{editing?.excerpt ?? ''}</textarea>
@@ -66,7 +82,7 @@ const editingCover = editing ? mediaUrl(editing.cover_image_key) : null;
 				<div id="article-editor"></div>
 			</div>
 			<span class="mt-1 block text-xs font-normal text-slate-500">
-				Use a barra de ferramentas para formatação. Clique no ícone de imagem para enviar fotos.
+				Use a barra de ferramentas para formatação. Clique no ícone de imagem para enviar fotos no corpo do artigo.
 			</span>
 		</div>
 
@@ -92,6 +108,25 @@ const editingCover = editing ? mediaUrl(editing.cover_image_key) : null;
 				</label>
 			)
 		}
+
+		<!-- Gallery -->
+		<div class="text-sm font-medium">
+			<span>Galeria de fotos (opcional)</span>
+			<div
+				id="gallery-dropzone"
+				class="mt-1 flex min-h-[120px] flex-wrap items-start gap-3 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-4 transition hover:border-brand-blue"
+			>
+				<div id="gallery-items" class="flex flex-wrap gap-3"></div>
+				<div id="gallery-placeholder" class="flex w-full items-center justify-center py-6 text-slate-400">
+					Arraste fotos aqui ou clique para adicionar
+				</div>
+			</div>
+			<input type="file" id="gallery-file-input" accept="image/*" multiple class="hidden" />
+			<span class="mt-1 block text-xs text-slate-500">
+				Arraste para reordenar. Clique no × para remover. As fotos aparecem abaixo do artigo.
+			</span>
+		</div>
+
 		<label class="inline-flex items-center gap-2 text-sm">
 			<input type="checkbox" name="published" value="1" checked={editing ? editing.published === 1 : true} />
 			Publicado
@@ -123,7 +158,7 @@ const editingCover = editing ? mediaUrl(editing.cover_image_key) : null;
 							)}
 							<div>
 								<p class="font-semibold">{item.title}</p>
-								<p class="text-sm text-slate-600">{formatDatePt(item.created_at)}</p>
+								<p class="text-sm text-slate-600">{formatDatePt(item.published_at)}</p>
 								{item.excerpt && <p class="mt-1 line-clamp-2 text-sm text-slate-500">{item.excerpt}</p>}
 								{item.published === 0 && <p class="mt-1 text-xs font-semibold text-amber-700">Rascunho</p>}
 							</div>
@@ -152,6 +187,7 @@ const editingCover = editing ? mediaUrl(editing.cover_image_key) : null;
 	<script is:inline src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 	<script is:inline>
 		(function () {
+			// --- Quill editor ---
 			const form = document.getElementById('article-form');
 			const hidden = document.getElementById('article_body');
 			const mount = document.getElementById('article-editor');
@@ -184,34 +220,159 @@ const editingCover = editing ? mediaUrl(editing.cover_image_key) : null;
 				input.onchange = async function () {
 					const file = input.files && input.files[0];
 					if (!file) return;
-
-					const formData = new FormData();
-					formData.append('image', file);
-
-					try {
-						const res = await fetch('/api/articles/upload-image', {
-							method: 'POST',
-							body: formData,
-							credentials: 'same-origin',
-						});
-						const data = await res.json();
-						if (!res.ok || !data.url) {
-							alert('Não foi possível enviar a imagem.');
-							return;
-						}
-						const range = quill.getSelection(true);
-						quill.insertEmbed(range.index, 'image', data.url);
-						quill.setSelection(range.index + 1);
-					} catch {
-						alert('Não foi possível enviar a imagem.');
-					}
+					const url = await uploadImage(file);
+					if (!url) return;
+					const range = quill.getSelection(true);
+					quill.insertEmbed(range.index, 'image', url);
+					quill.setSelection(range.index + 1);
 				};
 			});
 
+			async function uploadImage(file) {
+				const fd = new FormData();
+				fd.append('image', file);
+				try {
+					const res = await fetch('/api/articles/upload-image', {
+						method: 'POST',
+						body: fd,
+						credentials: 'same-origin',
+					});
+					const data = await res.json();
+					if (!res.ok || !data.url) {
+						alert('Não foi possível enviar a imagem.');
+						return null;
+					}
+					return data.url;
+				} catch {
+					alert('Não foi possível enviar a imagem.');
+					return null;
+				}
+			}
+
+			// --- Gallery drag-n-drop ---
+			const galleryHidden = document.getElementById('gallery_keys');
+			const dropzone = document.getElementById('gallery-dropzone');
+			const galleryItems = document.getElementById('gallery-items');
+			const galleryPlaceholder = document.getElementById('gallery-placeholder');
+			const galleryFileInput = document.getElementById('gallery-file-input');
+
+			let galleryKeys = [];
+			try {
+				galleryKeys = JSON.parse(galleryHidden.value || '[]');
+			} catch { galleryKeys = []; }
+
+			function renderGallery() {
+				galleryItems.innerHTML = '';
+				galleryPlaceholder.style.display = galleryKeys.length === 0 ? '' : 'none';
+				galleryKeys.forEach(function (key, idx) {
+					const url = '/api/media/' + key;
+					const wrapper = document.createElement('div');
+					wrapper.className = 'relative group';
+					wrapper.draggable = true;
+					wrapper.dataset.idx = idx;
+					wrapper.innerHTML =
+						'<img src="' + url + '" class="h-24 w-24 rounded-lg object-cover cursor-grab active:cursor-grabbing" />' +
+						'<button type="button" class="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white opacity-0 transition group-hover:opacity-100" data-remove="' + idx + '">×</button>';
+					galleryItems.appendChild(wrapper);
+				});
+				galleryHidden.value = JSON.stringify(galleryKeys);
+			}
+
+			// Remove handler
+			galleryItems.addEventListener('click', function (e) {
+				const btn = e.target.closest('[data-remove]');
+				if (!btn) return;
+				e.preventDefault();
+				const idx = parseInt(btn.dataset.remove, 10);
+				galleryKeys.splice(idx, 1);
+				renderGallery();
+			});
+
+			// Drag-n-drop reorder
+			let dragIdx = null;
+			galleryItems.addEventListener('dragstart', function (e) {
+				const wrapper = e.target.closest('[data-idx]');
+				if (!wrapper) return;
+				dragIdx = parseInt(wrapper.dataset.idx, 10);
+				wrapper.style.opacity = '0.4';
+			});
+			galleryItems.addEventListener('dragend', function (e) {
+				const wrapper = e.target.closest('[data-idx]');
+				if (wrapper) wrapper.style.opacity = '';
+				dragIdx = null;
+			});
+			galleryItems.addEventListener('dragover', function (e) {
+				e.preventDefault();
+			});
+			galleryItems.addEventListener('drop', function (e) {
+				e.preventDefault();
+				const wrapper = e.target.closest('[data-idx]');
+				if (!wrapper || dragIdx === null) return;
+				const dropIdx = parseInt(wrapper.dataset.idx, 10);
+				if (dragIdx === dropIdx) return;
+				const item = galleryKeys.splice(dragIdx, 1)[0];
+				galleryKeys.splice(dropIdx, 0, item);
+				renderGallery();
+			});
+
+			// External file drop
+			dropzone.addEventListener('dragover', function (e) {
+				e.preventDefault();
+				dropzone.classList.add('border-brand-blue', 'bg-blue-50');
+			});
+			dropzone.addEventListener('dragleave', function (e) {
+				dropzone.classList.remove('border-brand-blue', 'bg-blue-50');
+			});
+			dropzone.addEventListener('drop', function (e) {
+				e.preventDefault();
+				dropzone.classList.remove('border-brand-blue', 'bg-blue-50');
+				const files = e.dataTransfer && e.dataTransfer.files;
+				if (files && files.length > 0) addGalleryFiles(files);
+			});
+
+			// Click to add
+			dropzone.addEventListener('click', function (e) {
+				if (e.target.closest('button') || e.target.closest('img')) return;
+				galleryFileInput.click();
+			});
+			galleryFileInput.addEventListener('change', function () {
+				if (galleryFileInput.files && galleryFileInput.files.length > 0) {
+					addGalleryFiles(galleryFileInput.files);
+				}
+				galleryFileInput.value = '';
+			});
+
+			async function addGalleryFiles(files) {
+				for (let i = 0; i < files.length; i++) {
+					const file = files[i];
+					if (!file.type.startsWith('image/')) continue;
+					const fd = new FormData();
+					fd.append('image', file);
+					try {
+						const res = await fetch('/api/articles/upload-image', {
+							method: 'POST',
+							body: fd,
+							credentials: 'same-origin',
+						});
+						const data = await res.json();
+						if (res.ok && data.url) {
+							// url is /api/media/KEY — extract key
+							const key = data.url.replace('/api/media/', '');
+							galleryKeys.push(key);
+							renderGallery();
+						}
+					} catch { /* ignore */ }
+				}
+			}
+
+			renderGallery();
+
+			// --- Form submit ---
 			form.addEventListener('submit', function () {
 				const html = quill.root.innerHTML;
 				const text = quill.getText().trim();
 				hidden.value = text ? html : '';
+				galleryHidden.value = JSON.stringify(galleryKeys);
 			});
 		})();
 	</script>

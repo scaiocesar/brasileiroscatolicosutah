@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { requireAuth } from '../../../lib/admin';
-import { getMedia } from '../../../lib/db';
+import { getMedia, parseGalleryKeys } from '../../../lib/db';
 
 const ARTICLE_MEDIA_PREFIX = '/api/media/';
 
@@ -25,9 +25,9 @@ export const POST: APIRoute = async (context) => {
 	const form = await context.request.formData();
 	const id = Number(form.get('id'));
 	const row = await db
-		.prepare('SELECT cover_image_key, body FROM articles WHERE id = ?')
+		.prepare('SELECT cover_image_key, gallery_keys, body FROM articles WHERE id = ?')
 		.bind(id)
-		.first<{ cover_image_key: string | null; body: string }>();
+		.first<{ cover_image_key: string | null; gallery_keys: string | null; body: string }>();
 
 	await db.prepare('DELETE FROM articles WHERE id = ?').bind(id).run();
 
@@ -36,6 +36,7 @@ export const POST: APIRoute = async (context) => {
 		const keys = new Set<string>();
 		if (row.cover_image_key) keys.add(row.cover_image_key);
 		for (const key of imageKeysFromBody(row.body)) keys.add(key);
+		for (const key of parseGalleryKeys(row.gallery_keys)) keys.add(key);
 		for (const key of keys) {
 			try {
 				await media.delete(key);

@@ -163,7 +163,7 @@ export async function listPublishedArticles(db: D1Database | null, limit = 50): 
 			.prepare(
 				`SELECT * FROM articles
 				 WHERE published = 1
-				 ORDER BY created_at DESC
+				 ORDER BY published_at DESC
 				 LIMIT ?`,
 			)
 			.bind(limit)
@@ -191,7 +191,7 @@ export async function getArticleById(
 }
 
 export async function listAllArticles(db: D1Database): Promise<Article[]> {
-	const rows = await db.prepare('SELECT * FROM articles ORDER BY created_at DESC').all<Article>();
+	const rows = await db.prepare('SELECT * FROM articles ORDER BY published_at DESC').all<Article>();
 	return rows.results ?? [];
 }
 
@@ -215,4 +215,14 @@ export async function saveMediaImage(media: R2Bucket, file: File, folder: string
 		httpMetadata: { contentType: file.type || 'image/jpeg' },
 	});
 	return key;
+}
+
+export function parseGalleryKeys(raw: string | null | undefined): string[] {
+	if (!raw) return [];
+	try {
+		const arr = JSON.parse(raw);
+		return Array.isArray(arr) ? arr.filter((k: unknown): k is string => typeof k === 'string' && k.length > 0) : [];
+	} catch {
+		return [];
+	}
 }

@@ -1,6 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getArticleById, getDb, getSettings, isFeatureEnabled, mediaUrl } from '../../lib/db';
+import { getArticleById, getDb, getSettings, isFeatureEnabled, mediaUrl, parseGalleryKeys } from '../../lib/db';
 import { sanitizeArticleHtml } from '../../lib/html';
 import { formatDatePt } from '../../lib/dates';
 
@@ -20,6 +20,7 @@ if (!article) {
 
 const cover = mediaUrl(article.cover_image_key);
 const bodyHtml = sanitizeArticleHtml(article.body);
+const gallery = parseGalleryKeys(article.gallery_keys);
 const description =
 	article.excerpt?.trim() || `${article.title} — artigo da comunidade Brasileiros Católicos Utah.`;
 ---
@@ -35,7 +36,7 @@ const description =
 		<a href="/artigos" class="text-sm font-semibold text-brand-blue hover:underline">← Voltar aos artigos</a>
 
 		<p class="mt-6 text-sm font-semibold uppercase tracking-wide text-brand-blue">
-			{formatDatePt(article.created_at)}
+			{formatDatePt(article.published_at)}
 		</p>
 		<h1 class="mt-2 text-3xl font-extrabold text-brand-blue-dark sm:text-4xl">{article.title}</h1>
 
@@ -56,6 +57,31 @@ const description =
 			class="article-content mt-8 space-y-4 text-base leading-relaxed text-slate-700 sm:text-lg"
 			set:html={bodyHtml}
 		/>
+
+		{
+			gallery.length > 0 && (
+				<div class="mt-10">
+					<h2 class="text-lg font-bold text-brand-blue">Galeria de fotos</h2>
+					<div class="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+						{gallery.map((key, idx) => (
+							<a
+								href={mediaUrl(key)!}
+								target="_blank"
+								rel="noopener noreferrer"
+								class="overflow-hidden rounded-xl shadow-sm transition hover:shadow-card"
+							>
+								<img
+									src={mediaUrl(key)!}
+									alt={`Foto ${idx + 1} do artigo`}
+									class="aspect-[4/3] w-full object-cover"
+									loading="lazy"
+								/>
+							</a>
+						))}
+					</div>
+				</div>
+			)
+		}
 
 		<a
 			href="/artigos"

@@ -55,7 +55,11 @@ export type Article = {
 	excerpt: string | null;
 	body: string;
 	cover_image_key: string | null;
+	/** JSON array of R2 keys for gallery images */
+	gallery_keys: string | null;
 	published: number;
+	/** Editable publication date (ISO string) */
+	published_at: string;
 	created_by: number | null;
 	created_at: string;
 	updated_at: string;
