@@ -1,6 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import ShareButtons from '../../components/ShareButtons.astro';
 import { getArticleById, getDb, getSettings, isFeatureEnabled, mediaUrl, parseGalleryKeys } from '../../lib/db';
+import { SITE_URL } from '../../lib/constants';
 import { sanitizeArticleHtml } from '../../lib/html';
 import { formatDatePt } from '../../lib/dates';
 
@@ -21,6 +23,8 @@ if (!article) {
 const cover = mediaUrl(article.cover_image_key);
 const bodyHtml = sanitizeArticleHtml(article.body);
 const gallery = parseGalleryKeys(article.gallery_keys);
+const articleUrl = `${SITE_URL}/artigos/${article.id}`;
+const shareText = `${article.title} — Brasileiros Católicos Utah`;
 const description =
 	article.excerpt?.trim() || `${article.title} — artigo da comunidade Brasileiros Católicos Utah.`;
 ---
@@ -83,14 +87,17 @@ const description =
 			)
 		}
 
+		<ShareButtons url={articleUrl} text={shareText} />
+
 		<a
 			href="/artigos"
-			class="mt-10 inline-flex rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-brand-cream"
+			class="mt-6 inline-flex rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-800 hover:bg-brand-cream"
 		>
 			Ver todos os artigos
 		</a>
 	</section>
 </BaseLayout>
+
 
 <style>
 	.article-content :global(p) {

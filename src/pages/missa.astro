@@ -10,12 +10,16 @@ import {
 	mediaUrl,
 } from '../lib/db';
 import FeaturedMassBanner from '../components/FeaturedMass.astro';
+import ShareButtons from '../components/ShareButtons.astro';
+import { SITE_URL } from '../lib/constants';
 
 const db = getDb(Astro.locals);
 const settings = await getSettings(db);
 const masses = await listMasses(db, { publishedOnly: true });
 const featured = await getActiveFeaturedMass(db);
 const primaryMapsUrl = masses[0] ? mapsUrlForLocation(masses[0].location) : undefined;
+const missaUrl = `${SITE_URL}/missa`;
+const shareText = 'Horário da missa em português — Brasileiros Católicos Utah';
 ---
 
 <BaseLayout
@@ -30,6 +34,8 @@ const primaryMapsUrl = masses[0] ? mapsUrlForLocation(masses[0].location) : unde
 		<h1 class="mt-2 text-3xl font-extrabold text-brand-blue-dark sm:text-4xl">
 			Horário da missa em português
 		</h1>
+
+		<ShareButtons url={missaUrl} text={shareText} class="mt-6" />
 
 		{
 			masses.length === 0 ? (
