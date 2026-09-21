@@ -1,5 +1,6 @@
 import { DEFAULT_MASS, DEFAULT_MASSES, DEFAULT_SETTINGS } from './constants';
 import type { Article, EventItem, FeaturedMass, Mass, SiteSettings, User } from './types';
+import { sanitizePngForSocial } from './png';
 
 export function getDb(locals: App.Locals): D1Database | null {
 	return locals.runtime?.env?.DB ?? null;
@@ -211,8 +212,13 @@ export function mediaUrl(key: string | null | undefined): string | null {
 export async function saveMediaImage(media: R2Bucket, file: File, folder: string): Promise<string> {
 	const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
 	const key = `${folder}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext || 'jpg'}`;
-	await media.put(key, await file.arrayBuffer(), {
-		httpMetadata: { contentType: file.type || 'image/jpeg' },
+	let bytes: ArrayBuffer = await file.arrayBuffer();
+	const contentType = file.type || 'image/jpeg';
+	if (contentType.includes('png') || ext === 'png') {
+		bytes = sanitizePngForSocial(bytes);
+	}
+	await media.put(key, bytes, {
+		httpMetadata: { contentType },
 	});
 	return key;
 }
