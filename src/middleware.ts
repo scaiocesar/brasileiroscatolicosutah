@@ -25,7 +25,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
 	const response = await next();
 
-	if (pathname.startsWith('/admin') || pathname.startsWith('/api/')) {
+	// Keep admin/API private, but allow caching for public media so Facebook/WhatsApp
+	// can fetch og:image (they reject images served with Cache-Control: no-store).
+	const isPublicMedia = pathname.startsWith('/api/media/');
+	if (!isPublicMedia && (pathname.startsWith('/admin') || pathname.startsWith('/api/'))) {
 		response.headers.set('Cache-Control', 'no-store');
 	}
 
