@@ -265,7 +265,7 @@ const editingPublishedAt = editing ? toDatetimeLocalValue(editing.published_at) 
 				galleryItems.innerHTML = '';
 				galleryPlaceholder.style.display = galleryKeys.length === 0 ? '' : 'none';
 				galleryKeys.forEach(function (key, idx) {
-					const url = '/api/media/' + key;
+					const url = '/media/' + key;
 					const wrapper = document.createElement('div');
 					wrapper.className = 'relative group';
 					wrapper.draggable = true;
@@ -356,8 +356,8 @@ const editingPublishedAt = editing ? toDatetimeLocalValue(editing.published_at) 
 						});
 						const data = await res.json();
 						if (res.ok && data.url) {
-							// url is /api/media/KEY — extract key
-							const key = data.url.replace('/api/media/', '');
+							// url is /media/KEY — extract key
+							const key = data.url.replace(/^\/(api\/)?media\//, '');
 							galleryKeys.push(key);
 							renderGallery();
 						}

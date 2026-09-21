@@ -1,4 +1,4 @@
-const ARTICLE_MEDIA_PREFIX = '/api/media/articles/';
+const ARTICLE_MEDIA_PREFIX = '/media/articles/';
 
 const VOID_TAGS = new Set(['br', 'img']);
 

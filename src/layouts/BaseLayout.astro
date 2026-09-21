@@ -25,7 +25,12 @@ const {
 
 const fullTitle = title.includes(settings.site_name) ? title : `${title} | ${settings.site_name}`;
 const canonical = new URL(canonicalPath, SITE_URL).toString();
-const og = ogImage.startsWith('http') ? ogImage : new URL(ogImage, SITE_URL).toString();
+// Serve social previews from /og/* (JPEG) so Facebook/WhatsApp don't hit /api or raw PNGs.
+const ogAbsolute = ogImage.startsWith('http') ? ogImage : new URL(ogImage, SITE_URL).toString();
+const og = ogAbsolute
+	.replace(`${SITE_URL}/api/media/`, `${SITE_URL}/og/`)
+	.replace(`${SITE_URL}/media/`, `${SITE_URL}/og/`);
+const ogIsSocialJpeg = og.includes(`${SITE_URL}/og/`);
 ---
 
 <!doctype html>
@@ -47,6 +52,7 @@ const og = ogImage.startsWith('http') ? ogImage : new URL(ogImage, SITE_URL).toS
 		<meta property="og:description" content={description} />
 		<meta property="og:url" content={canonical} />
 		<meta property="og:image" content={og} />
+		{ogIsSocialJpeg && <meta property="og:image:type" content="image/jpeg" />}
 		<meta property="og:image:alt" content={fullTitle} />
 		<meta name="twitter:card" content="summary_large_image" />
 		<meta name="twitter:title" content={fullTitle} />

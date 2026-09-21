@@ -2,15 +2,16 @@ import type { APIRoute } from 'astro';
 import { requireAuth } from '../../../lib/admin';
 import { getMedia, parseGalleryKeys } from '../../../lib/db';
 
-const ARTICLE_MEDIA_PREFIX = '/api/media/';
+const ARTICLE_MEDIA_PREFIXES = ['/media/', '/api/media/'];
 
 function imageKeysFromBody(body: string): string[] {
 	const keys: string[] = [];
-	const re = /src="(\/api\/media\/articles\/[^"]+)"/g;
+	const re = /src="(\/(?:api\/)?media\/articles\/[^"]+)"/g;
 	let match: RegExpExecArray | null;
 	while ((match = re.exec(body)) !== null) {
 		const url = match[1];
-		const key = url.startsWith(ARTICLE_MEDIA_PREFIX) ? url.slice(ARTICLE_MEDIA_PREFIX.length) : null;
+		const prefix = ARTICLE_MEDIA_PREFIXES.find((p) => url.startsWith(p));
+		const key = prefix ? url.slice(prefix.length) : null;
 		if (key) keys.push(key);
 	}
 	return keys;

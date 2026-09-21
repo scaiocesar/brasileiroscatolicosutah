@@ -206,7 +206,15 @@ export async function listUsers(db: D1Database): Promise<User[]> {
 export function mediaUrl(key: string | null | undefined): string | null {
 	if (!key) return null;
 	if (key.startsWith('http') || key.startsWith('/')) return key;
-	return `/api/media/${key}`;
+	return `/media/${key}`;
+}
+
+/** Fresh JPEG endpoint for Facebook/WhatsApp (avoids /api + PNG issues). */
+export function ogMediaUrl(key: string | null | undefined): string | null {
+	if (!key) return null;
+	if (key.startsWith('http')) return key;
+	const path = key.startsWith('/') ? key.replace(/^\/(api\/)?media\//, '') : key;
+	return `/og/${path}`;
 }
 
 export async function saveMediaImage(media: R2Bucket, file: File, folder: string): Promise<string> {
